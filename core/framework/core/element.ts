@@ -16,7 +16,7 @@ import {
     UPDATE
 } from "./core";
 import {getCurrentParentTNode, setCurrentTNode} from "./state";
-import {findDirectiveDefMatches, isComponentDef} from "./shared";
+import { isComponentDef} from "./shared";
 import {createDirectivesInstances, resolveDirectives} from "./directive";
 import {createLView, createTView} from "./bootstrap";
 
@@ -30,8 +30,6 @@ export function ɵɵelementStart(index: number, tag: string, attrsIndex?: number
     const tView = lView.tView;
 
     let el = lView.data[index];
-
-    let matchedDirectiveDefs;
 
     // get or create tNode
     let tNode: TNode
@@ -84,14 +82,14 @@ export function ɵɵelementStart(index: number, tag: string, attrsIndex?: number
             }
         }
 
-        matchedDirectiveDefs = resolveDirectives(tNode, tView, lView)
-
         const id = lView.tView?.id;
 
         const id_value = "_ngcontent-" + id;
         (el as HTMLElement).setAttribute(id_value, id_value);
 
     }
+
+    let matchedDirectiveDefs = resolveDirectives(tNode, tView, lView)
 
     appendChild(el, lView, tView, runtime.currentTNode.parent)
 
@@ -172,42 +170,29 @@ export function ɵɵelementEnd() {
 
 function renderComponent(def: DirectiveDef<any>, parentTView: TView, el: any, parent: LView, index: number) {
 
-    // @ts-ignore
-    const componentInstance = def.type.ɵfac();
-
-    if (!isComponentDef(def)) {
+    if (!def || !isComponentDef(def)) {
         return;
     }
 
+    const componentLView = parent.instances[index]
+    const componentInstance = componentLView.context // def.type.ɵfac();
+
     const componentDef = def as ComponentDef<any>;
 
-    const tView = getOrCreateComponentTView(componentDef);
+    const tView = componentLView.tView // getOrCreateComponentTView(componentDef);
 
     const templateFn = componentDef.template;
 
-    const id_value = "_nghost-" + (componentDef as ComponentDef<any>).tView.id;
+    const id_value = "_nghost-" + tView.id; //(componentDef as ComponentDef<any>).tView.id;
     (el as HTMLElement).setAttribute(id_value, id_value);
 
     if (templateFn !== null) {
 
-        // const lView: LView = {
-        //     flags: undefined,
-        //     id: 0,
-        //     tView: componentDef.tView,
-        //     data: [...componentDef.tView.blueprint],
-        //     instances: [...componentDef.tView.blueprint],
-        //     parent: parent,
-        //     host: el,
-        //     context: componentInstance,
-        //     context_value: null,
-        //     queries: null
-        // };
+        // const lView: LView = createLView(parent, tView, componentInstance, null, el, null);
 
-        const lView: LView = createLView(parent, tView, componentInstance, null, el, null);
+        // parent.instances[index] = lView;
 
-        parent.instances[index] = lView;
-
-        enterView(lView);
+        enterView(componentLView);
         templateFn(CREATE, componentInstance);
         componentDef.tView.firstCreatePass = false;
 
@@ -235,26 +220,4 @@ function shimCss(componentIdentifier: string, styleText: string) {
 
 export function isDirectiveHost(tNode: TNode): boolean {
     return (tNode.flags & TNodeFlags.isDirectiveHost) === TNodeFlags.isDirectiveHost;
-}
-
-export function getOrCreateComponentTView(def: ComponentDef<any>): TView {
-    const tView = def.tView;
-
-    if (tView === null) {
-
-        const declTNode = null;
-
-        return (def.tView = createTView(
-            TViewType.Component,
-            declTNode,
-            def.template,
-            def.decls,
-            def.vars,
-            def.directiveDefs,
-            def.consts,
-            def.id,
-        ));
-    }
-
-    return tView;
 }

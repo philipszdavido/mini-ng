@@ -1,5 +1,7 @@
 import {enterView, leaveView, runtime, TNode, UPDATE} from "./core";
 import { isDirectiveHost} from "./element";
+import {getLView, getSelectedIndex, getTView} from "./state";
+import {getNativeByTNode} from "../common";
 
 // i0.ɵɵproperty("bind", ctx.name);
 export function ɵɵproperty<T>(
@@ -28,13 +30,58 @@ export function ɵɵclassProp(
     className: string,
     value: boolean | undefined | null,
 ) {
-    // checkStylingProperty(className, value, null, true);
-}
 
-export function ɵɵstyleProp() {
+    checkStylingProperty(className, value, null, true);
 
 }
 
-export function ɵɵattribute() {
+export function ɵɵstyleProp(
+    prop: string,
+    value: string | number | undefined | null,
+    suffix?: string | null,
+) {
+
+    checkStylingProperty(prop, value, suffix, false);
+
+}
+
+export function ɵɵattribute(
+    className: string,
+    value: any,
+) {
+
+    const lView = getLView();
+    const tView = getTView();
+    const index = getSelectedIndex();
+
+    const tNode = tView.data[index] as TNode
+
+    const el = getNativeByTNode(tNode, lView) as HTMLElement
+
+    el.removeAttribute(className)
+    el.setAttribute(className, value)
+
+}
+
+function checkStylingProperty(
+    prop: string,
+    value: any,
+    suffix: string | undefined | null,
+    isClassBased: boolean,
+) {
+    const lView = getLView();
+    const tView = getTView();
+    const index = getSelectedIndex();
+
+    const tNode = tView.data[index] as TNode
+
+    const el = getNativeByTNode(tNode, lView) as HTMLElement
+
+    if (isClassBased) {
+        el.classList.remove(value);
+        el.classList.add(value);
+    } else {
+        el.style.setProperty(prop, value)
+    }
 
 }

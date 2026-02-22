@@ -156,7 +156,7 @@ export const enum TNodeType {
   AnyContainer = 0b1100, // Container | ElementContainer
 }
 
-export type TData = (number | TNode )[]
+export type TData = (number | TNode  )[]
 
 export enum TViewType {
   Root,
@@ -175,6 +175,7 @@ export type TView = {
   id: string;
   data: TData;
   components: number[] | null;
+  directives?: DirectiveDef<any>[]
 };
 
 export interface LView {
@@ -189,6 +190,7 @@ export interface LView {
   queries: LQueries,
   flags: LViewFlags,
   id: number,
+  directive_instances?: any[]
 }
 
 type NodeOutputBindings = {

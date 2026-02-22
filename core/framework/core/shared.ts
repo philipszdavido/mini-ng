@@ -1,5 +1,17 @@
-import {ComponentDef, CssSelector, DirectiveDef, getComponentDef, getDirectiveDef, TNode, TView, Type, TAttributes} from "./core";
+import {
+    ComponentDef,
+    CssSelector,
+    DirectiveDef,
+    getComponentDef,
+    getDirectiveDef,
+    TNode,
+    TView,
+    Type,
+    TAttributes,
+    LView, TViewType
+} from "./core";
 import {AttributeMarker} from "./attribute_marker";
+import {createTView} from "./bootstrap";
 
 export function findDirectiveDefMatches(
     tView: TView,
@@ -53,14 +65,21 @@ function isNodeMatchingSelector(tNode: TNode,
     const nodeAttrs = tNode.attrs;
 
     for (let i = 0; i < selector.length; i++) {
-        if (selector[i] === tNodeSelector) {
+        const currentSelector = selector[i]
+
+        if (currentSelector === tNodeSelector) {
             return true;
+        }
+
+        if (!nodeAttrs) {
+            return false;
         }
 
         for (let nodeAttrIndex = 0; nodeAttrIndex < nodeAttrs.length; nodeAttrIndex++) {
             const nodeAttr = nodeAttrs[nodeAttrIndex];
+
             if (Array.isArray(nodeAttr)) {
-                if (nodeAttr[0] === selector[i]) {
+                if (nodeAttr[0].toString().toLowerCase() === currentSelector.toLowerCase()) {
                     return true;
                 }
             }
@@ -92,4 +111,43 @@ export function isNameOnlyAttributeMarker(marker: string | AttributeMarker | Css
         marker === AttributeMarker.Template ||
         marker === AttributeMarker.I18n
     );
+}
+
+export function allocExpando(
+    tView: TView,
+    lView: LView,
+    numSlotsToAlloc: number,
+    initialValue: unknown,
+): number {
+    if (numSlotsToAlloc === 0) return -1;
+    const allocIdx = lView.directive_instances.length;
+    for (let i = 0; i < numSlotsToAlloc; i++) {
+        lView.directive_instances.push(initialValue);
+        // tView.blueprint.push(initialValue);
+        tView.directives.push(null);
+    }
+    return allocIdx;
+}
+
+
+export function getOrCreateComponentTView(def: ComponentDef<any>): TView {
+    const tView = def.tView;
+
+    if (tView === null) {
+
+        const declTNode = null;
+
+        return (def.tView = createTView(
+            TViewType.Component,
+            declTNode,
+            def.template,
+            def.decls,
+            def.vars,
+            def.directiveDefs,
+            def.consts,
+            def.id,
+        ));
+    }
+
+    return tView;
 }
