@@ -3,6 +3,7 @@ import {classHasDecorator, ComponentMetadata, createCmpDefinitionPropertiesNode}
 import {ctx, i0, rf, ɵdir, ɵɵdefineDirective, ɵɵlistener} from "../constants/constants";
 import {ExpressionParser} from "../expr_parser/expr_parser";
 import {factory} from "typescript";
+import {stripQuotes} from "../utils/utils";
 
 export function hasDirectiveDecorator(node: ts.ClassDeclaration) {
     return classHasDecorator(node, "Directive")
@@ -58,7 +59,7 @@ export function createHostBinding(node: ts.ClassDeclaration, metadata: Component
         properties.forEach((property) => {
             if (ts.isPropertyAssignment(property)) {
                 const key = (property.name as ts.StringLiteral).text;
-                const value = property.initializer.getText();
+                const value = stripQuotes(property.initializer.getText());
                 const {createNodes, updateNodes} = parseHostBindings(key.trim(), value);
 
                 stmts.push(...createNodes);
@@ -165,10 +166,17 @@ function parseHostBindings(key: string, value: string) {
 
 }
 
-export function getTokenExpression(typeNode: ts.TypeReferenceNode): ts.Expression {
+export function getTokenExpression(typeNode: ts.TypeReferenceNode, fromMiniNgCore: boolean): ts.Expression {
     const typeName = typeNode.typeName;
 
     if (ts.isIdentifier(typeName)) {
+
+        if (fromMiniNgCore) {
+            return ts.factory.createPropertyAccessExpression(
+                ts.factory.createIdentifier(i0),
+                ts.factory.createIdentifier(typeName.text)
+            )
+        }
         return ts.factory.createIdentifier(typeName.text);
     }
 

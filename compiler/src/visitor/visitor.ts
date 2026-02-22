@@ -8,15 +8,18 @@ import {
   updateClassDeclaration,
 } from "../transformer/transformer";
 import {createDefineDirectiveStatic, createHostBinding, hasDirectiveDecorator} from "./directive_visitor";
-import {ConstructorDeclaration} from "typescript";
+import {stripQuotes} from "../utils/utils";
+
+export type DirectivesToInject = { fromMiniNgCore: boolean; parameter: ts.ParameterDeclaration; }
 
 export function transformPlugin(
   program: ts.Program,
 ): ts.TransformerFactory<ts.SourceFile> | ts.CustomTransformerFactory {
-  return (context): any => {
+  return (context) => {
     const factory = context.factory;
 
     const hoisted: ts.Statement[] = [];
+    let miniNgCoreImports = []
 
     function visit(node: ts.Node): ts.Node {
       // we need to skip comments
@@ -32,22 +35,20 @@ export function transformPlugin(
       if (ts.isClassDeclaration(node) && (hasComponentDecorator(node) || hasDirectiveDecorator(node))) {
 
         // we need to check if the constructor has arguments
-        const directivesToInject: ts.ParameterDeclaration[] = []
+        const directivesToInject: DirectivesToInject[]  = []
+
         node.members.find(element => {
           if (ts.isConstructorDeclaration(element)) {
             (element).parameters.forEach((parameter) => {
-              directivesToInject.push(parameter);
+
+              directivesToInject.push({
+                fromMiniNgCore: miniNgCoreImports.includes(stripQuotes(parameter.type.getText())),
+                parameter
+              });
+
             })
           }
         })
-
-        directivesToInject.forEach(param => {
-          if (!param.type || !ts.isTypeReferenceNode(param.type)) {
-            throw new Error("Constructor parameter must have a type for DI");
-          }
-
-          const typeName = param.type.typeName;
-        });
 
         const isComponent = hasComponentDecorator(node)
         const isDirective = !isComponent
@@ -60,13 +61,29 @@ export function transformPlugin(
 
         const cmpDefNode = isDirective ? createDefineDirectiveStatic(componentName, metadata, node, hoisted, createHostBinding(node, metadata)) : createDefineComponentStatic(componentName, metadata, node, hoisted);
 
+        miniNgCoreImports = []
+
         return updateClassDeclaration(node, [factoryNode, cmpDefNode]);
       }
 
       return ts.visitEachChild(node, visit, context);
     }
 
-    return (sourceFile) => {
+    return (sourceFile: ts.SourceFile) => {
+
+      ts.forEachChild(sourceFile, node => {
+        if (ts.isImportDeclaration(node)) {
+
+          const moduleName = node.moduleSpecifier.getText();
+
+          if (stripQuotes(moduleName.trim()) === "@mini-ng/core") {
+            (node.importClause.namedBindings as ts.NamedImports).elements.forEach((element) => {
+              miniNgCoreImports.push(element.name.escapedText)
+            })
+          }
+
+        }
+      });
 
       // check if import from "@mini-ng/core" exists
       let hasMiniNgImport = sourceFile.statements.some(
@@ -94,7 +111,6 @@ export function transformPlugin(
         ]);
       }
 
-      // return ts.visitNode(sourceFile, visit);
       const visited = ts.visitNode(sourceFile, visit) as ts.SourceFile;
       return context.factory.updateSourceFile(
           visited,
@@ -128,4 +144,32 @@ function findLastImportIndex(statements: readonly ts.Statement[]): number {
   }
 
   return lastImport;
+}
+
+function isFromMiniNgCore(
+    param: ts.ParameterDeclaration,
+    checker: ts.TypeChecker
+): boolean {
+
+  if (!param.type || !ts.isTypeReferenceNode(param.type)) {
+    return false;
+  }
+
+  const symbol = checker.getSymbolAtLocation(
+      param.type.typeName
+  );
+
+  if (!symbol) return false;
+
+  const resolved =
+      symbol.flags & ts.SymbolFlags.Alias
+          ? checker.getAliasedSymbol(symbol)
+          : symbol;
+
+  const declarations = resolved.getDeclarations();
+  if (!declarations?.length) return false;
+
+  const fileName = declarations[0].getSourceFile().fileName;
+
+  return fileName.includes("node_modules/@mini-ng/core");
 }

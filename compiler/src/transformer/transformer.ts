@@ -3,11 +3,12 @@ import * as fs from "fs"
 import { readFileSync } from 'node:fs';
 import { Parser } from "../template/parser";
 import {CSSParser} from "../css_parser/css_parser";
-import {i0, ɵcmp, ɵfac, ɵɵdefineComponent} from "../constants/constants";
+import {i0, ɵcmp, ɵfac, ɵɵdefineComponent, ɵɵdirectiveInject} from "../constants/constants";
 import * as path from "node:path";
 import {Template} from "../template/view_generator";
 import {factory} from "typescript";
 import {getTokenExpression} from "../visitor/directive_visitor";
+import {DirectivesToInject} from "../visitor/visitor";
 
 export type ComponentMetadata = {
   selector: ts.PropertyAssignment;
@@ -136,20 +137,23 @@ function getMetadataProperty(
   );
 }
 
-export function createFactoryStatic(componentName: string, node: ts.Node, directivesToInject: ts.ParameterDeclaration[]) {
+export function createFactoryStatic(componentName: string, node: ts.Node, directivesToInject: DirectivesToInject[]) {
   const f = ts.factory;
 
-  const factoryArgs = directivesToInject.map(param => {
+  const factoryArgs = directivesToInject.map(directiveToInject => {
+
+    const param = directiveToInject.parameter;
+
     if (!param.type || !ts.isTypeReferenceNode(param.type)) {
       throw new Error("DI param must have type");
     }
 
-    const tokenExpr = getTokenExpression(param.type);
+    const tokenExpr = getTokenExpression(param.type, directiveToInject.fromMiniNgCore);
 
     return ts.factory.createCallExpression(
         ts.factory.createPropertyAccessExpression(
-            ts.factory.createIdentifier("i0"),
-            "ɵɵdirectiveInject"
+            ts.factory.createIdentifier(i0),
+            ɵɵdirectiveInject
         ),
         undefined,
         [tokenExpr]
@@ -330,55 +334,6 @@ export function createCmpDefinitionPropertiesNode(
     properties.push(constsNode);
 
     generateTemplateStmts(templateStmts, sourceFile, hoisted)
-
-    // const context = "ctx";
-    // const renderFlag = "rf";
-    // const functionName = componentName + "_Template";
-
-    // const templateString = (template.initializer as ts.StringLiteral).text;
-
-    // const parser = new Parser(templateString);
-    // const { block, consts} = parser.parse();
-
-    // properties.push(
-    //   ts.factory.createPropertyAssignment(
-    //     "template",
-    //     ts.factory.createFunctionExpression(
-    //       undefined,
-    //       undefined,
-    //       functionName,
-    //       undefined,
-    //       [
-    //         ts.factory.createParameterDeclaration(
-    //           undefined,
-    //           undefined,
-    //           renderFlag,
-    //           undefined,
-    //           undefined,
-    //           undefined
-    //         ),
-    //         ts.factory.createParameterDeclaration(
-    //           undefined,
-    //           undefined,
-    //           context,
-    //           undefined,
-    //           undefined,
-    //           undefined
-    //         ),
-    //       ],
-    //       undefined,
-    //       block
-    //     )
-    //   )
-    // );
-
-    // consts
-    // properties.push(ts.factory.createPropertyAssignment(
-    //     ts.factory.createIdentifier("consts"),
-    //     ts.factory.createArrayLiteralExpression(
-    //         consts
-    //     )
-    // ));
 
   }
 
