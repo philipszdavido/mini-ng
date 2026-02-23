@@ -9,16 +9,43 @@ export function setupZone(callbackfn: () => void) {
         listener: (this:Window, ev: any) => any,
         options?: boolean | AddEventListenerOptions) => {
 
-        console.log(type);
-
         try {
+
             oldListener(type, listener, options);
 
             callbackfn();
+
         } catch (e) {
             console.error(e);
         }
 
     };
+
+    const oldDocumentListener = EventTarget.prototype.addEventListener;
+
+    EventTarget.prototype.addEventListener = (
+        // type: string,
+        // listener: EventListenerOrEventListenerObject,
+        // options?: boolean | AddEventListenerOptions
+        ...args
+    ) => {
+
+        try {
+
+            const _args = [...args]
+
+            const [type, listener, options] = _args
+
+            // callbackfn();
+
+            _args[1] = callbackfn
+
+            oldDocumentListener.apply(this, _args);
+
+        } catch (e) {
+            console.error(e);
+        }
+
+    }
 
 }
