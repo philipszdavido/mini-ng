@@ -187,19 +187,11 @@ function renderComponent(def: DirectiveDef<any>, parentTView: TView, el: any, pa
 
     if (templateFn !== null) {
 
-        // enterView(componentLView);
-        // templateFn(CREATE, componentInstance);
-        // componentDef.tView.firstCreatePass = false;
-
         if (componentDef.styles) {
             shimCss(componentDef.id, componentDef.styles.join("\n"));
         }
 
         // First update pass
-        // templateFn(UPDATE, componentInstance);
-        //
-        // leaveView();
-
         renderView(tView, componentLView, componentInstance)
 
     }

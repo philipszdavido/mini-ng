@@ -23,7 +23,7 @@ export function setupZone(callbackfn: () => void) {
                 }
 
                 // Trigger change detection AFTER event handler
-                callbackfn();
+                // callbackfn();
             } catch (e) {
                 console.error(e);
             }
@@ -42,4 +42,39 @@ export function setupZone(callbackfn: () => void) {
         const wrapped = listenerMap.get(listener) || listener;
         return originalRemove.call(this, type, wrapped, options);
     };
+
+    const originalSetTimeout = window.setTimeout;
+
+    // @ts-ignore
+    window.setTimeout = function (callback, delay?, ...args) {
+        const wrapped = function () {
+            callback.apply(this, args);
+            callbackfn();
+        };
+
+        return originalSetTimeout(wrapped, delay);
+    };
+
+    const originalThen = Promise.prototype.then;
+
+    Promise.prototype.then = function (onFulfilled, onRejected) {
+        const wrappedFulfilled = onFulfilled
+            ? (value) => {
+                const result = onFulfilled(value);
+                callbackfn();
+                return result;
+            }
+            : undefined;
+
+        const wrappedRejected = onRejected
+            ? (reason) => {
+                const result = onRejected(reason);
+                callbackfn();
+                return result;
+            }
+            : undefined;
+
+        return originalThen.call(this, wrappedFulfilled, wrappedRejected);
+    };
+
 }
