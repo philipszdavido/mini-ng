@@ -1,51 +1,45 @@
 export function setupZone(callbackfn: () => void) {
-    // here, we will patch into the listeners in the DOM
-    // we will update the app from the root when an event is dispatched
+    const originalAdd = EventTarget.prototype.addEventListener;
+    const originalRemove = EventTarget.prototype.removeEventListener;
 
-    const oldListener = window.addEventListener;
+    const listenerMap = new WeakMap<EventListenerOrEventListenerObject, any>();
 
-    window.addEventListener = (
-        type: any,
-        listener: (this:Window, ev: any) => any,
-        options?: boolean | AddEventListenerOptions) => {
-
-        try {
-
-            oldListener(type, listener, options);
-
-            callbackfn();
-
-        } catch (e) {
-            console.error(e);
+    EventTarget.prototype.addEventListener = function (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+    ) {
+        if (!listener) {
+            return originalAdd.call(this, type, listener, options);
         }
 
+        const wrapped = function (event: Event) {
+            try {
+                // Call original listener properly
+                if (typeof listener === "function") {
+                    listener.call(this, event);
+                } else if (listener.handleEvent) {
+                    listener.handleEvent.call(listener, event);
+                }
+
+                // Trigger change detection AFTER event handler
+                callbackfn();
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        listenerMap.set(listener, wrapped);
+
+        return originalAdd.call(this, type, wrapped, options);
     };
 
-    const oldDocumentListener = EventTarget.prototype.addEventListener;
-
-    EventTarget.prototype.addEventListener = (
-        // type: string,
-        // listener: EventListenerOrEventListenerObject,
-        // options?: boolean | AddEventListenerOptions
-        ...args
-    ) => {
-
-        try {
-
-            const _args = [...args]
-
-            const [type, listener, options] = _args
-
-            // callbackfn();
-
-            _args[1] = callbackfn
-
-            oldDocumentListener.apply(this, _args);
-
-        } catch (e) {
-            console.error(e);
-        }
-
-    }
-
+    EventTarget.prototype.removeEventListener = function (
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | EventListenerOptions
+    ) {
+        const wrapped = listenerMap.get(listener) || listener;
+        return originalRemove.call(this, type, wrapped, options);
+    };
 }

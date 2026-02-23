@@ -155,7 +155,6 @@ export function createLView<T>(
 }
 
 function tick() {
-  console.log("tick")
   let rootLView = runtime.currentLView as LView;
   detectChanges(rootLView);
 }
