@@ -18,7 +18,7 @@ import {
 import {getCurrentParentTNode, setCurrentTNode} from "./state";
 import { isComponentDef} from "./shared";
 import {createDirectivesInstances, resolveDirectives} from "./directive";
-import {createLView, createTView} from "./bootstrap";
+import {renderView} from "./change_detection";
 
 const COMPONENT_VARIABLE = '%COMP%';
 const HOST_ATTR = `_nghost-${COMPONENT_VARIABLE}`;
@@ -146,7 +146,6 @@ export function createTNode(
         componentOffset: -1,
         directiveStart: -1,
         directiveEnd: -1,
-        directiveToIndex: []
     }
 }
 
@@ -175,40 +174,39 @@ function renderComponent(def: DirectiveDef<any>, parentTView: TView, el: any, pa
     }
 
     const componentLView = parent.instances[index]
-    const componentInstance = componentLView.context // def.type.ɵfac();
+    const componentInstance = componentLView.context;
 
     const componentDef = def as ComponentDef<any>;
 
-    const tView = componentLView.tView // getOrCreateComponentTView(componentDef);
+    const tView = componentLView.tView
 
     const templateFn = componentDef.template;
 
-    const id_value = "_nghost-" + tView.id; //(componentDef as ComponentDef<any>).tView.id;
+    const id_value = "_nghost-" + tView.id;
     (el as HTMLElement).setAttribute(id_value, id_value);
 
     if (templateFn !== null) {
 
-        // const lView: LView = createLView(parent, tView, componentInstance, null, el, null);
-
-        // parent.instances[index] = lView;
-
-        enterView(componentLView);
-        templateFn(CREATE, componentInstance);
-        componentDef.tView.firstCreatePass = false;
+        // enterView(componentLView);
+        // templateFn(CREATE, componentInstance);
+        // componentDef.tView.firstCreatePass = false;
 
         if (componentDef.styles) {
             shimCss(componentDef.id, componentDef.styles.join("\n"));
         }
 
         // First update pass
-        templateFn(UPDATE, componentInstance);
+        // templateFn(UPDATE, componentInstance);
+        //
+        // leaveView();
 
-        leaveView();
+        renderView(tView, componentLView, componentInstance)
 
     }
 
 }
 
+// TODO: we don't need to recreate styles everytime
 function shimCss(componentIdentifier: string, styleText: string) {
 
     styleText = styleText.replaceAll(COMPONENT_VARIABLE, componentIdentifier)
