@@ -24,6 +24,8 @@ export function ɵɵlistener(listener: string, fn: () => void) {
 
     const componentLView = getComponentLView(lView);
 
+    appendListener(listener, runtime.currentTNode, lView, tView, listenerCallback(componentLView, fn))
+
     if (isDirectiveHost(tNode)) {
 
         const childLView = lView.instances[tNode.index];
@@ -35,10 +37,6 @@ export function ɵɵlistener(listener: string, fn: () => void) {
             }
 
         }
-
-    } else {
-
-        appendListener(listener, runtime.currentTNode, lView, tView, listenerCallback(componentLView, fn))
 
     }
 

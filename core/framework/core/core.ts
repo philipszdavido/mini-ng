@@ -204,7 +204,7 @@ type NodeInputBindings = {
 export type TAttributes = (string | AttributeMarker | CssSelector)[]
 
 export type TNode = {
-  directiveToIndex: any[];
+  directiveToIndex?: Map<Type<any>, number>;
   directiveStart: number;
   directiveEnd: number;
   type: TNodeType;
@@ -303,7 +303,7 @@ export function ɵɵdefineComponent<T>(componentDefinition: ComponentDefinition<
     template: componentDefinition.template,
     type: (componentDefinition as unknown as DirectiveDefinition<T>).type,
     vars: componentDefinition.vars,
-    hostBindings: componentDefinition.hostBindings,
+    hostBindings: componentDefinition.hostBindings  || null,
   }
 
   def.id = getComponentId(def);

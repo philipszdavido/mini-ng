@@ -7,11 +7,13 @@ import {
   TView,
   ComponentDef,
   CssSelector,
-  Type, TViewType, TNode, DirectiveDefListOrFactory, ComponentTemplate, TConstantsOrFactory
+  Type, TViewType, TNode, runtime
 } from "./core";
 import { DefaultDomRenderer2 } from "./browser";
 import { setupZone } from "./zone";
 import {getUniqueLViewId, LViewFlags} from "./type";
+import {detectChanges} from "./change_detection";
+import {createTView} from "./shared";
 
 function locateHostElement(
   renderer,
@@ -56,6 +58,9 @@ export function bootstrapApplication(component: any) {
 
   // we need to root TView
   const rootTView = createRootTView(rootSelectorOrNode, componentDef, undefined);
+  rootTView.template = componentDef.template
+
+  const templateFn = rootTView.template
 
   const lView: LView = {
     flags: undefined,
@@ -70,20 +75,23 @@ export function bootstrapApplication(component: any) {
     queries: null
   };
 
+  setupZone(() => {
+    tick();
+  });
+
   enterView(lView);
 
-  componentDef.template(CREATE, componentInstance);
-  // componentDef.tView.firstCreatePass = false;
+  templateFn(CREATE, componentInstance);
+
   rootTView.firstCreatePass = false;
 
   // First update pass
-  componentDef.template(UPDATE, componentInstance);
-
-  setupZone(() => {
-    componentDef.template(UPDATE, componentInstance);
-  });
+  templateFn(UPDATE, componentInstance);
 
   leaveView();
+
+  enterView(lView);
+
 }
 
 function extractAttrsAndClassesFromSelector(selector: CssSelector) {
@@ -116,35 +124,6 @@ function createRootTView(
   return rootTView;
 }
 
-export function createTView(
-    type: TViewType,
-    declTNode: TNode | null,
-    templateFn: ComponentTemplate<any> | null,
-    decls: number,
-    vars: number,
-    directives: DirectiveDefListOrFactory | null,
-    constsOrFactory: TConstantsOrFactory | null,
-    ssrId: string | null,
-): TView {
-
-  const blueprint = []
-  const consts = typeof constsOrFactory === 'function' ? constsOrFactory() : constsOrFactory;
-  const tView: TView = ({
-    type: type,
-    blueprint: null,
-    template: templateFn,
-    data: blueprint.slice().fill(null, 0),
-    firstCreatePass: true,
-    directiveRegistry: typeof directives === 'function' ? directives() : directives,
-    consts: consts,
-    styles: [],
-    id: ssrId,
-    components: null
-  });
-
-  return tView;
-}
-
 export function createLView<T>(
     parentLView: LView | null,
     tView: TView,
@@ -173,4 +152,10 @@ export function createLView<T>(
   }
 
   return lView as LView;
+}
+
+function tick() {
+  console.log("tick")
+  let rootLView = runtime.currentLView as LView;
+  detectChanges(rootLView);
 }

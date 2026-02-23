@@ -8,10 +8,11 @@ import {
     TView,
     Type,
     TAttributes,
-    LView, TViewType
+    LView, TViewType, ComponentTemplate, DirectiveDefListOrFactory, TConstantsOrFactory, runtime
 } from "./core";
 import {AttributeMarker} from "./attribute_marker";
-import {createTView} from "./bootstrap";
+import {RenderFlags} from "./render_flags";
+import {setCurrentTNode} from "./state";
 
 export function findDirectiveDefMatches(
     tView: TView,
@@ -150,4 +151,99 @@ export function getOrCreateComponentTView(def: ComponentDef<any>): TView {
     }
 
     return tView;
+}
+
+export function invokeDirectivesHostBindings(tView: TView, lView: LView, tNode: TNode) {
+    const start = tNode.directiveStart;
+    const end = tNode.directiveEnd;
+    const elementIndex = tNode.index;
+    // const currentDirectiveIndex = getCurrentDirectiveIndex();
+    try {
+        setSelectedIndex(elementIndex);
+        for (let dirIndex = start; dirIndex < end; dirIndex++) {
+            const def = tView.directives[dirIndex] as DirectiveDef<unknown>;
+            const directive = lView.directive_instances[dirIndex];
+            // setCurrentDirectiveIndex(dirIndex);
+            if (def.hostBindings !== null /*|| def.hostVars !== 0 || def.hostAttrs !== null*/) {
+                invokeHostBindingsInCreationMode(def, directive);
+            }
+        }
+    } finally {
+        setSelectedIndex(-1);
+        // setCurrentDirectiveIndex(currentDirectiveIndex);
+    }
+
+}
+
+export function createTView(
+    type: TViewType,
+    declTNode: TNode | null,
+    templateFn: ComponentTemplate<any> | null,
+    decls: number,
+    vars: number,
+    directives: DirectiveDefListOrFactory | null,
+    constsOrFactory: TConstantsOrFactory | null,
+    ssrId: string | null,
+): TView {
+
+    const blueprint = []
+    const consts = typeof constsOrFactory === 'function' ? constsOrFactory() : constsOrFactory;
+    const tView: TView = ({
+        type: type,
+        blueprint: null,
+        template: templateFn,
+        data: blueprint.slice().fill(null, 0),
+        firstCreatePass: true,
+        directiveRegistry: typeof directives === 'function' ? directives() : directives,
+        consts: consts,
+        styles: [],
+        id: ssrId,
+        components: null
+    });
+
+    return tView;
+}
+
+export function isComponentHost(tNode: TNode): boolean {
+    return tNode.componentOffset > -1;
+}
+
+export function setSelectedIndex(index: number) {
+    runtime.selectedIndex = index
+}
+
+export function invokeHostBindingsInCreationMode(def: DirectiveDef<any>, directive: any) {
+
+    if (def.hostBindings !== null) {
+        def.hostBindings!(RenderFlags.CREATE, directive);
+    }
+}
+
+export function processHostBindingOpCodes(tView: TView, lView: LView, tNode: TNode) {
+
+    setCurrentTNode(tNode, false)
+
+    const start = tNode.directiveStart;
+    const end = tNode.directiveEnd;
+    const elementIndex = tNode.index;
+
+    try {
+        setSelectedIndex(elementIndex);
+        for (let dirIndex = start; dirIndex < end; dirIndex++) {
+            const def = tView.directives[dirIndex] as DirectiveDef<unknown>;
+            const directive = lView.directive_instances[dirIndex];
+            if (def.hostBindings !== null) {
+                invokeHostBindingsInUpdateMode(def, directive);
+            }
+        }
+    } finally {
+        setSelectedIndex(-1);
+    }
+
+}
+
+function invokeHostBindingsInUpdateMode(def: DirectiveDef<any>, directive: any) {
+    if (def.hostBindings !== null) {
+        def.hostBindings!(RenderFlags.UPDATE, directive);
+    }
 }

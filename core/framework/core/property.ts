@@ -78,8 +78,11 @@ function checkStylingProperty(
     const el = getNativeByTNode(tNode, lView) as HTMLElement
 
     if (isClassBased) {
-        el.classList.remove(value);
-        el.classList.add(value);
+        if (!value) {
+            el.classList.remove(prop);
+        } else {
+            el.classList.add(prop);
+        }
     } else {
         el.style.setProperty(prop, value)
     }

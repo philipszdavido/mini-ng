@@ -1,6 +1,11 @@
 import {ComponentDef, DirectiveDef, LView, runtime, TNode, TNodeFlags, TView, ɵɵdefineComponent} from "./core";
-import {allocExpando, findDirectiveDefMatches, getOrCreateComponentTView, isComponentDef} from "./shared";
-import {RenderFlags} from "./render_flags";
+import {
+    allocExpando,
+    findDirectiveDefMatches,
+    getOrCreateComponentTView,
+    invokeDirectivesHostBindings,
+    isComponentDef, isComponentHost
+} from "./shared";
 import {createLView} from "./bootstrap";
 
 export function ɵɵdefineDirective(def: any) {
@@ -46,7 +51,7 @@ function initializeDirectives(
     }
 
     if (directivesLength > 0) {
-        tNode.directiveToIndex = [];
+        tNode.directiveToIndex = new Map();
     }
 
     (lView.directive_instances ??= []);
@@ -130,40 +135,4 @@ function instantiateAllDirectives(tView: TView, lView: LView, tNode: TNode) {
 
     }
 
-}
-
-export function invokeDirectivesHostBindings(tView: TView, lView: LView, tNode: TNode) {
-    // const start = tNode.directiveStart;
-    // const end = tNode.directiveEnd;
-    const elementIndex = tNode.index;
-    // const currentDirectiveIndex = getCurrentDirectiveIndex();
-    try {
-        setSelectedIndex(elementIndex);
-        for (let dirIndex = 0; dirIndex < tNode.directiveToIndex.length; dirIndex++) {
-            const def = tView.directives[dirIndex] as DirectiveDef<unknown>;
-            const directive = lView.directive_instances[dirIndex];
-            // setCurrentDirectiveIndex(dirIndex);
-            if (def.hostBindings !== null /*|| def.hostVars !== 0 || def.hostAttrs !== null*/) {
-                invokeHostBindingsInCreationMode(def, directive);
-            }
-        }
-    } finally {
-        setSelectedIndex(-1);
-        // setCurrentDirectiveIndex(currentDirectiveIndex);
-    }
-
-}
-
-export function isComponentHost(tNode: TNode): boolean {
-    return tNode.componentOffset > -1;
-}
-
-export function setSelectedIndex(index: number) {
-    runtime.selectedIndex = index
-}
-
-export function invokeHostBindingsInCreationMode(def: DirectiveDef<any>, directive: any) {
-    if (def.hostBindings !== null) {
-        def.hostBindings!(RenderFlags.CREATE, directive);
-    }
 }
