@@ -45,7 +45,7 @@ export class Parser {
   }
 
   parse() {
-    const el = parse(this.template, parseConfig);
+    // const el = parse(this.template, parseConfig);
 
     const html = this.template;
 
