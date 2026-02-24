@@ -20,3 +20,27 @@ export function signal<T>(initial: T) {
 
     return getter;
 }
+
+// let currentView = null;
+
+// class Signal {
+//     constructor(value) {
+//         this.value = value;
+//         this.subscribers = new Set();
+//     }
+//
+//     get() {
+//         if (currentView) {
+//             this.subscribers.add(currentView);
+//         }
+//         return this.value;
+//     }
+//
+//     set(value) {
+//         this.value = value;
+//         this.subscribers.forEach(view => {
+//             view.dirty = true;
+//             schedule(view);
+//         });
+//     }
+// }
