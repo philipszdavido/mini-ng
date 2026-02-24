@@ -1,14 +1,20 @@
 import {
     ComponentDef,
+    ComponentTemplate,
     CssSelector,
     DirectiveDef,
+    DirectiveDefListOrFactory,
     getComponentDef,
     getDirectiveDef,
+    LView,
+    runtime,
+    SelectorFlags,
+    TAttributes,
+    TConstantsOrFactory,
     TNode,
     TView,
-    Type,
-    TAttributes,
-    LView, TViewType, ComponentTemplate, DirectiveDefListOrFactory, TConstantsOrFactory, runtime
+    TViewType,
+    Type
 } from "./core";
 import {AttributeMarker} from "./attribute_marker";
 import {RenderFlags} from "./render_flags";
@@ -82,6 +88,10 @@ function isNodeMatchingSelector(tNode: TNode,
             if (Array.isArray(nodeAttr)) {
                 if (nodeAttr[0].toString().toLowerCase() === currentSelector.toLowerCase()) {
                     return true;
+                }
+
+                if (typeof nodeAttr[0] === "number" && nodeAttr[1].toString().toLowerCase() === currentSelector.toLowerCase()) {
+                    return true
                 }
             }
         }
@@ -246,4 +256,14 @@ function invokeHostBindingsInUpdateMode(def: DirectiveDef<any>, directive: any) 
     if (def.hostBindings !== null) {
         def.hostBindings!(RenderFlags.UPDATE, directive);
     }
+}
+
+export function mapPropName(name: string): string {
+    if (name === 'class') return 'className';
+    if (name === 'for') return 'htmlFor';
+    if (name === 'formaction') return 'formAction';
+    if (name === 'innerHtml') return 'innerHTML';
+    if (name === 'readonly') return 'readOnly';
+    if (name === 'tabindex') return 'tabIndex';
+    return name;
 }
