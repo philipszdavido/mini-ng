@@ -1,11 +1,19 @@
-mini-ng — Documentation
+mini-ng — Documentation (Angular-style)
 
-Welcome to the mini-ng documentation. This guide covers: basics, core runtime APIs, the TypeScript compiler plugin, advanced topics and examples. Start with the Basics and follow along to Advanced topics.
+This documentation mirrors the structure of Angular's docs: Getting Started, Tutorial, Guides, API Reference, CLI, Cookbook, and Advanced topics. Use these pages as a developer portal for authoring, building and extending mini-ng apps.
 
-Navigation
+Primary sections
+
+- Getting Started: docs/getting-started.md
+- Tutorial (step-by-step): docs/tutorial/01-intro.md
+- Guides (Components, Templates, DI, Router, Forms, HTTP, Testing): docs/guides/
+- API Reference (Core, Compiler): docs/api/
+- CLI: docs/cli.md
+- Cookbook & Examples: docs/cookbook.md and docs/examples.md
+- Advanced & Internals: docs/04-advanced.md
+
+Quick links
 
 - Basics: docs/01-basics.md
 - Core runtime: docs/02-core.md
-- Compiler & transforms: docs/03-compiler.md
-- Advanced topics: docs/04-advanced.md
-- Examples: docs/examples.md
+- Compiler: docs/03-compiler.md
