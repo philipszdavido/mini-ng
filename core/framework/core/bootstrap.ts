@@ -2,8 +2,6 @@ import {
   LView,
   enterView,
   leaveView,
-  CREATE,
-  UPDATE,
   TView,
   ComponentDef,
   CssSelector,
@@ -14,6 +12,7 @@ import { setupZone } from "./zone";
 import {getUniqueLViewId, LViewFlags} from "./type";
 import {detectChanges} from "./change_detection";
 import {createTView} from "./shared";
+import {RenderFlags} from "./render_flags";
 
 function locateHostElement(
   renderer,
@@ -81,12 +80,12 @@ export function bootstrapApplication(component: any) {
 
   enterView(lView);
 
-  templateFn(CREATE, componentInstance);
+  templateFn(RenderFlags.CREATE, componentInstance);
 
   rootTView.firstCreatePass = false;
 
   // First update pass
-  templateFn(UPDATE, componentInstance);
+  templateFn(RenderFlags.UPDATE, componentInstance);
 
   leaveView();
 

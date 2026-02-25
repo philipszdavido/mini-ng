@@ -2,9 +2,6 @@ import {AttributeMarker} from "./attribute_marker";
 import {RenderFlags} from "./render_flags";
 import {LViewFlags, Writable} from "./type";
 
-export const CREATE = 1;
-export const UPDATE = 2;
-
 export interface LQuery<T> {}
 
 export interface LQueries {
@@ -77,6 +74,9 @@ export interface ComponentDef<T> extends DirectiveDef<T> {
     [kind: string]: any;
     animation?: any[];
   };
+  readonly inputConfig: {
+    [P in keyof T]?: string | [InputFlags, string, string?, InputTransformFunction?];
+  };
 
   readonly onPush: boolean;
   readonly signals: boolean;
@@ -122,6 +122,7 @@ interface DirectiveDefinition<T> {
   exportAs?: string[];
   standalone?: boolean;
   signals?: boolean;
+  declaredInputs: Record<string, string>;
 }
 
 interface ComponentDefinition<T> extends DirectiveDefinition<T> {
@@ -279,31 +280,45 @@ export function ɵɵadvance(delta: number = 1) {
   runtime.selectedIndex = delta;
 }
 
-export function ɵɵdefineComponent<T>(componentDefinition: ComponentDefinition<T>): ComponentDef<T> {
+export function getDefinition<T>(def: DirectiveDefinition<any>) : DirectiveDef<T> {
+  const directiveDefinition = def;
+  const declaredInputs: Record<string, string> = {};
 
-  const def: Writable<ComponentDef<T>> = {
-    consts: typeof componentDefinition.consts === "function" ? componentDefinition.consts() : componentDefinition.consts,
-    data: componentDefinition.data,
-    declaredInputs: null,
-    decls: componentDefinition.decls,
-    dependencies: (componentDefinition).dependencies,
-    directiveDefs: null,
-    exportAs: [],
-    getExternalStyles: null,
-    hostVars: 0,
-    id: "",
-    inputs: convertDirectiveInputs((componentDefinition as unknown as DirectiveDefinition<T>).inputs),
-    onPush: false,
-    outputs: (componentDefinition as unknown as DirectiveDefinition<T>).outputs,
-    selectors: (componentDefinition as unknown as DirectiveDefinition<T>).selectors,
+  return {
     signals: false,
     standalone: false,
+    type: directiveDefinition.type,
+    hostBindings: directiveDefinition.hostBindings  || null,
+    declaredInputs,
+    // @ts-ignore
+    inputConfig: directiveDefinition.inputs || EMPTY_OBJ,
+    exportAs: [],
+    hostVars: 0,
+    inputs: parseAndConvertInputsForDefinition((directiveDefinition as unknown as DirectiveDefinition<T>).inputs, declaredInputs),
+    outputs: parseAndConvertOutputsForDefinition((directiveDefinition as unknown as DirectiveDefinition<T>).outputs),
+    selectors: (directiveDefinition as unknown as DirectiveDefinition<T>).selectors,
+  }
+}
+
+export function ɵɵdefineComponent<T>(componentDefinition: ComponentDefinition<T>): ComponentDef<T> {
+
+  const dirDef = getDefinition(componentDefinition  as DirectiveDefinition<any>);
+
+  // @ts-ignore
+  const def: Writable<ComponentDef<T>> = {
+    ...dirDef,
+    onPush: false,
+    id: "",
+    getExternalStyles: null,
+    directiveDefs: null,
+    data: componentDefinition.data,
+    consts: typeof componentDefinition.consts === "function" ? componentDefinition.consts() : componentDefinition.consts,
+    dependencies: (componentDefinition).dependencies,
+    decls: componentDefinition.decls,
+    vars: componentDefinition.vars,
     styles: componentDefinition.styles,
     tView: null,
     template: componentDefinition.template,
-    type: (componentDefinition as unknown as DirectiveDefinition<T>).type,
-    vars: componentDefinition.vars,
-    hostBindings: componentDefinition.hostBindings  || null,
   }
 
   def.id = getComponentId(def);
@@ -400,4 +415,55 @@ function convertDirectiveInputs<T>(
   }
 
   return result;
+}
+
+export const EMPTY_OBJ = {}
+
+function parseAndConvertInputsForDefinition<T>(
+    obj: DirectiveDefinition<T>['inputs'],
+    declaredInputs: Record<string, string>,
+) {
+  if (obj == null) return EMPTY_OBJ as any;
+  const newLookup: Record<
+      string,
+      [minifiedName: string, flags: InputFlags, transform: InputTransformFunction | null]
+  > = {};
+  for (const minifiedKey in obj) {
+    if (obj.hasOwnProperty(minifiedKey)) {
+      const value = obj[minifiedKey]!;
+      let publicName: string;
+      let declaredName: string;
+      let inputFlags: InputFlags;
+      let transform: InputTransformFunction | null;
+
+      if (Array.isArray(value)) {
+        inputFlags = value[0];
+        publicName = value[1];
+        declaredName = value[2] ?? publicName; // declared name might not be set to save bytes.
+        transform = value[3] || null;
+      } else {
+        publicName = value;
+        declaredName = value;
+        inputFlags = InputFlags.None;
+        transform = null;
+      }
+
+      newLookup[publicName] = [minifiedKey, inputFlags, transform];
+      declaredInputs[publicName] = declaredName as string;
+    }
+  }
+  return newLookup;
+}
+
+function parseAndConvertOutputsForDefinition<T>(
+    obj: DirectiveDefinition<T>['outputs'],
+): Record<keyof T, string> {
+  if (obj == null) return EMPTY_OBJ as any;
+  const newLookup: any = {};
+  for (const minifiedKey in obj) {
+    if (obj.hasOwnProperty(minifiedKey)) {
+      newLookup[obj[minifiedKey]!] = minifiedKey;
+    }
+  }
+  return newLookup;
 }

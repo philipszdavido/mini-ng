@@ -3,11 +3,9 @@ import {
     DirectiveDef,
     getDefinition,
     LView,
-    runtime,
     TNode,
     TNodeFlags,
     TView,
-    ɵɵdefineComponent
 } from "./core";
 import {
     allocExpando,

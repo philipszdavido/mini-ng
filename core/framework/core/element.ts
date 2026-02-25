@@ -1,10 +1,7 @@
 import {AttributeMarker} from "./attribute_marker";
 import {
     ComponentDef,
-    CREATE,
     DirectiveDef,
-    enterView,
-    leaveView,
     LView,
     NameSpace,
     runtime,
@@ -13,7 +10,6 @@ import {
     TNodeType,
     TView,
     TViewType,
-    UPDATE
 } from "./core";
 import {getCurrentParentTNode, setCurrentTNode} from "./state";
 import { isComponentDef} from "./shared";

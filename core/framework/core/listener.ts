@@ -1,11 +1,12 @@
-import {enterView, leaveView, LView, runtime, TNode, TView, TViewType, UPDATE} from "./core";
+import {enterView, leaveView, LView, runtime, TNode, TView, TViewType } from "./core";
 import { isDirectiveHost } from "./element";
+import {RenderFlags} from "./render_flags";
 
 function listenerCallback(lView: LView, fn: any) {
     return (evt: Event | any ) => {
         enterView(lView)
         fn(evt);
-        lView.tView.template(UPDATE, lView.context);
+        lView.tView.template(RenderFlags.UPDATE, lView.context);
         leaveView();
     }
 }

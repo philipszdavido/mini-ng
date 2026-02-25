@@ -1,7 +1,8 @@
-import {enterView, leaveView, runtime, TNode, UPDATE} from "./core";
+import {enterView, leaveView, runtime, TNode } from "./core";
 import { isDirectiveHost} from "./element";
 import {getLView, getSelectedIndex, getTView} from "./state";
 import {getNativeByTNode} from "../common";
+import {RenderFlags} from "./render_flags";
 
 // i0.ɵɵproperty("bind", ctx.name);
 export function ɵɵproperty<T>(
@@ -12,6 +13,25 @@ export function ɵɵproperty<T>(
     const tView = lView.tView;
     const tNode = tView.data[runtime.selectedIndex] as TNode
 
+    const inputs = tNode.inputs?.[propName];
+    
+    if (tNode.directiveStart > -1) {
+
+        for (let i = 0; i < lView.directive_instances.length; i++) {
+            const directive_instance = lView.directive_instances[i];
+            const def = tView.directives[i];
+            const input = def.inputs[propName]
+            // if (input === propName)
+            //     directive_instance[propName] = value;
+        }
+        
+    }
+
+    if (inputs) {
+        for (const index of inputs) {
+        }
+    }
+
     lView.data[tNode.index][propName] = value;
 
     if (isDirectiveHost(tNode)) {
@@ -20,9 +40,12 @@ export function ɵɵproperty<T>(
         childLView.context[propName] = value as string;
 
         enterView(childLView);
-        childLView.tView.template(UPDATE, childLView.context);
+        childLView.tView.template(RenderFlags.UPDATE, childLView.context);
         leaveView()
     }
+
+    // propName = mapPropName(propName);
+    // setDomProperty(tNode, lView, propName, value, renderer, sanitizer);
 
 }
 

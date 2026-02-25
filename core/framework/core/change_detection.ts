@@ -1,6 +1,6 @@
-import {CREATE, enterView, leaveView, LView, TNode, TView, UPDATE} from "./core";
-import {invokeDirectivesHostBindings, processHostBindingOpCodes} from "./shared";
-import {setCurrentTNode} from "./state";
+import { enterView, leaveView, LView, TNode, TView } from "./core";
+import { processHostBindingOpCodes} from "./shared";
+import {RenderFlags} from "./render_flags";
 
 export function renderView(tView: TView, lView: LView, ctx: any) {
 
@@ -9,10 +9,10 @@ export function renderView(tView: TView, lView: LView, ctx: any) {
     enterView(lView);
 
     if (tView.firstCreatePass) {
-        templateFn(CREATE | UPDATE, ctx);
+        templateFn(RenderFlags.CREATE | RenderFlags.UPDATE, ctx);
         tView.firstCreatePass = false;
     } else {
-        templateFn(UPDATE, ctx);
+        templateFn(RenderFlags.UPDATE, ctx);
     }
 
     leaveView();
@@ -33,7 +33,7 @@ function refreshView(lView: LView) {
 
     enterView(lView)
 
-    template(UPDATE, lView.context);
+    template(RenderFlags.UPDATE, lView.context);
 
     // update directives
     for (let i = 0; i < tView.data.length; i++) {
