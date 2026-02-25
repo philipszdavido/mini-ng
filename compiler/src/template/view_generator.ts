@@ -23,7 +23,6 @@ import {CSSParser} from "../css_parser/css_parser";
 import {ElementType} from "domelementtype";
 import {replaceCustomDirectivesAndPipes} from "../expr_parser/html_string_to_template_ast";
 import ts = require("typescript");
-import {ChildNode} from "postcss";
 
 export interface ViewGeneratorOptions {
   // Add any configuration options here
@@ -127,9 +126,9 @@ export class ViewGenerator {
     element: Element,
     index: number
   ): { creation: string; update: string, attrArray: string[] } {
-    const tag =  this.rewriteTagExactDomName(element.tagName);
+    const tag = this.rewriteTagExactDomName(element.tagName);
     const attributes = element.attribs;
-    const attrArray = [];
+    // const attrArray = [];
     let attrIndex;
 
     const tempStmts = [];
@@ -144,16 +143,28 @@ export class ViewGenerator {
             generateListenerNode(eventName, tag, index + 1, attributes[attr])
         )
       } else if (attr.startsWith("[")) {
+        let attr_marker = AttributeMarker.Bindings;
+
         // Property binding
         const propertyName = attr.slice(1, -1);
 
         this.updateStmts.push(generateAdvanceNode(index.toString()));
         this.updateStmts.push(generatePropertyNode(propertyName, attributes[attr], this.implicitVariables));
 
-      } else {
-        attrArray.push(`"${attr}", "${attributes[attr]}"`);
+        tempConstsStmts.push(
+            ts.factory.createArrayLiteralExpression(
+                [
+                  ts.factory.createNumericLiteral(attr_marker),
+                  ts.factory.createStringLiteral(propertyName)
+                ]
+            )
+        )
+        attrIndex = this.consts.length;
 
-        let attr_marker : AttributeMarker;
+      } else {
+        // attrArray.push(`"${attr}", "${attributes[attr]}"`);
+
+        let attr_marker: AttributeMarker;
 
         switch (attr) {
           case 'style': {
@@ -173,10 +184,10 @@ export class ViewGenerator {
 
         tempConstsStmts.push(
             ts.factory.createArrayLiteralExpression(
-            [
-                !attr_marker ? ts.factory.createStringLiteral(attr) : ts.factory.createNumericLiteral(attr_marker),
-              ts.factory.createStringLiteral(attributes[attr])
-            ]
+                [
+                  !attr_marker ? ts.factory.createStringLiteral(attr) : ts.factory.createNumericLiteral(attr_marker),
+                  ts.factory.createStringLiteral(attributes[attr])
+                ]
             )
         )
         attrIndex = this.consts.length;
@@ -186,7 +197,7 @@ export class ViewGenerator {
     // here, push consts
     this.consts.push(
         ts.factory.createArrayLiteralExpression(
-        tempConstsStmts
+            tempConstsStmts
         )
     )
 
@@ -224,7 +235,7 @@ export class ViewGenerator {
 
     this.stmts.push(generateElementEndNode());
 
-    return { creation: "", update: "", attrArray };
+    return {creation: "", update: "", attrArray: []};
   }
 
   private processText(
