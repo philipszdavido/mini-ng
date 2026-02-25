@@ -1,11 +1,8 @@
 import * as glob from "glob";
 import * as ts from "typescript";
 import { transformPlugin } from "./visitor/visitor";
-import { build } from "./bundle";
 import { bundleProject } from "./bundle-vite"
 
-// /Users/chidumennamdi/Documents/MacBookPro2020/developerse/my-angular/test
-// "/Users/chidumennamdi/Downloads/MacBookPro2020/developerse/my-angular/test"
 process.chdir(
   "/Users/chidumennamdi/Documents/MacBookPro2020/developerse/mini-ng/mini-ng-test",
 );
@@ -18,28 +15,12 @@ const tsFiles = glob.sync("src/**/*.ts");
 // Usage
 const program = ts.createProgram({
   rootNames: tsFiles,
-  // options: {
-  //   module: ts.ModuleKind.ESNext,
-  //   target: ts.ScriptTarget.ES2020,
-  //   // target: ts.ScriptTarget.Latest,
-  //   // module: ts.ModuleKind.CommonJS,
-  //   // experimentalDecorators: true,
-  //   outDir: "./dist",
-  // },
-  // options: {
-  //   module: ts.ModuleKind.ESNext,
-  //   target: ts.ScriptTarget.ES2020,
-  //   experimentalDecorators: false,
-  //   emitDecoratorMetadata: false,
-  //   useDefineForClassFields: true,
-  //   outDir: "./dist",
-  // },
 
   options: {
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2022,
     useDefineForClassFields: true,
-    experimentalDecorators: false,
+    experimentalDecorators: true,
     emitDecoratorMetadata: false,
     outDir: "./dist",
     removeComments: true

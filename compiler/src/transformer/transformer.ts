@@ -3,7 +3,7 @@ import * as fs from "fs"
 import { readFileSync } from 'node:fs';
 import { Parser } from "../template/parser";
 import {CSSParser} from "../css_parser/css_parser";
-import {i0, ɵcmp, ɵfac, ɵɵdefineComponent, ɵɵdirectiveInject} from "../constants/constants";
+import {i0, rf, ɵcmp, ɵfac, ɵɵdefineComponent, ɵɵdirectiveInject} from "../constants/constants";
 import * as path from "node:path";
 import {Template} from "../template/view_generator";
 import {factory} from "typescript";
@@ -562,9 +562,9 @@ function isInputOutputDecorator(dec: ts.Decorator, inputOutput: string): boolean
   return false;
 }
 
-function preserveExport(node: ts.ClassDeclaration): ts.Modifier[] | undefined {
-  if (!node.modifiers) return undefined;
-  const exportModifier = node.modifiers.find(
+function preserveExport(modifiers: ts.ModifierLike[]/*node: ts.ClassDeclaration*/): ts.Modifier[] | undefined {
+  if (!modifiers) return undefined;
+  const exportModifier = modifiers.find(
     (m) => m.kind === ts.SyntaxKind.ExportKeyword,
   );
   if (exportModifier) {
@@ -582,13 +582,23 @@ export function updateClassDeclaration(
       stripDecoratorsFromMember(m, ts.factory)
   );
 
+  const strippedNewMembers = newMembers.map(m =>
+      stripDecoratorsFromMember(m, ts.factory)
+  );
+
+  let modifiers = node.modifiers.filter(
+      m => m.kind !== ts.SyntaxKind.Decorator
+  );
+
+  modifiers = preserveExport(modifiers);
+
   return ts.factory.updateClassDeclaration(
     node,
-    preserveExport(node), // keeps 'export'
+    modifiers, // keeps 'export'
     node.name,
     node.typeParameters,
     node.heritageClauses,
-    [...members, ...newMembers], // static blocks
+    [...members, ...strippedNewMembers], // static blocks
   );
 
 }
@@ -597,19 +607,19 @@ function stripDecoratorsFromMember(
     member: ts.ClassElement,
     factory: ts.NodeFactory
 ): ts.ClassElement {
+
   if (!ts.canHaveDecorators(member)) return member;
 
   const decorators = ts.getDecorators(member);
-  if (!decorators || decorators.length === 0) return member;
+  if (!decorators?.length) return member;
 
   if (ts.isPropertyDeclaration(member)) {
-    return factory.updatePropertyDeclaration(
-        member,
-        /* modifiers */ member.modifiers,
-        /* name */ member.name,
-        /* questionOrExclamationToken */ member.questionToken,
-        /* type */ member.type,
-        /* initializer */ member.initializer
+    return factory.createPropertyDeclaration(
+        ts.getModifiers(member), // keep modifiers
+        member.name,
+        member.questionToken ?? member.exclamationToken,
+        member.type,
+        member.initializer
     );
   }
 
@@ -626,7 +636,7 @@ function generateTemplateStmts(templateStmts: Template[], sourceFile: ts.SourceF
 
     const creationNode = ts.factory.createIfStatement(
         factory.createBinaryExpression(
-            ts.factory.createIdentifier("rf"),
+            ts.factory.createIdentifier(rf),
             ts.SyntaxKind.AmpersandToken,
             ts.factory.createIdentifier("1")
         ),
@@ -636,7 +646,7 @@ function generateTemplateStmts(templateStmts: Template[], sourceFile: ts.SourceF
 
     const updateNode = factory.createIfStatement(
         factory.createBinaryExpression(
-            factory.createIdentifier("rf"),
+            factory.createIdentifier(rf),
             ts.SyntaxKind.AmpersandToken,
             factory.createIdentifier("2")
         ),
