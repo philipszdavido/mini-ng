@@ -12,5 +12,6 @@ export * from "../common";
 export * from "./directive"
 export * from "./di"
 export * from "./../common/index"
+export * from "./input_flags"
 
 export { EventEmitter } from "./EventEmitter"
