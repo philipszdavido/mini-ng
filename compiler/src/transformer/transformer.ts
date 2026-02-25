@@ -9,6 +9,7 @@ import {Template} from "../template/view_generator";
 import {factory} from "typescript";
 import {getTokenExpression} from "../visitor/directive_visitor";
 import {DirectivesToInject} from "../visitor/visitor";
+import {extractInputsOutputs} from "./input_output_transformer";
 
 export type ComponentMetadata = {
   selector: ts.PropertyAssignment;
@@ -405,7 +406,7 @@ export function createCmpDefinitionPropertiesNode(
           ts.factory.createPropertyAssignment(
               ts.factory.createIdentifier("inputs"),
               ts.factory.createObjectLiteralExpression(
-                  inputs.map(input => ts.factory.createPropertyAssignment(input, ts.factory.createStringLiteral(input)))
+                  inputs.map(input => ts.factory.createPropertyAssignment(input.key, input.value))
               )
           )
       )
@@ -416,7 +417,7 @@ export function createCmpDefinitionPropertiesNode(
           ts.factory.createPropertyAssignment(
               ts.factory.createIdentifier("outputs"),
               ts.factory.createObjectLiteralExpression(
-                  outputs.map(output => ts.factory.createPropertyAssignment(output, ts.factory.createStringLiteral(output)))
+                  outputs.map(output => ts.factory.createPropertyAssignment(output.key, output.value))
               )
           )
       )
@@ -517,49 +518,6 @@ function generateTemplateInstructions(componentName: string, templateString: str
       templateStmts
     }
 
-}
-
-function extractInputsOutputs(node: ts.ClassDeclaration) {
-  const inputs: string[] = [];
-  const outputs: string[] = [];
-
-  for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
-    if (!member.name || !ts.isIdentifier(member.name)) continue;
-
-    const decorators = ts.canHaveDecorators(member)
-        ? ts.getDecorators(member)
-        : undefined;
-
-    if (!decorators) continue;
-
-    for (const dec of decorators) {
-      if (isInputOutputDecorator(dec, "Input")) {
-        inputs.push(member.name.text);
-        continue;
-      }
-      if (isInputOutputDecorator(dec, "Output")) {
-        outputs.push(member.name.text);
-      }
-    }
-  }
-
-  return { inputs, outputs };
-}
-
-function isInputOutputDecorator(dec: ts.Decorator, inputOutput: string): boolean {
-  const expr = dec.expression;
-
-  if (ts.isIdentifier(expr)) {
-    return expr.text === inputOutput;
-  }
-
-  if (ts.isCallExpression(expr)) {
-    return ts.isIdentifier(expr.expression)
-        && expr.expression.text === inputOutput;
-  }
-
-  return false;
 }
 
 function preserveExport(modifiers: ts.ModifierLike[]/*node: ts.ClassDeclaration*/): ts.Modifier[] | undefined {
