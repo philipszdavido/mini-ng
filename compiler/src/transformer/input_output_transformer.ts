@@ -1,6 +1,7 @@
 import * as ts from "typescript";
 import {factory} from "typescript";
 import {i0} from "../constants/constants";
+import {stripQuotes} from "../utils/utils";
 
 export function extractInputsOutputs(node: ts.ClassDeclaration) {
     const inputs: { key: string; value: ts.Expression; } [] = [];
@@ -30,8 +31,8 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
                         value = ts.factory.createArrayLiteralExpression(
                             [
                                 generateInputFlags("None"),
-                                ts.factory.createStringLiteral(argExpression.text),
-                                ts.factory.createStringLiteral(member.name.text),
+                                ts.factory.createStringLiteral(stripQuotes(argExpression.text)),
+                                ts.factory.createStringLiteral(stripQuotes(member.name.text)),
                             ],
                             false
                         )
@@ -47,7 +48,7 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
                         properties.forEach((property: ts.PropertyAssignment) => {
 
                             if (property.name.getText() === "alias") {
-                                alias = ts.factory.createStringLiteral(property.initializer.getText())
+                                alias = ts.factory.createStringLiteral(stripQuotes(property.initializer.getText().trim()))
                             }
 
                             if (property.name.getText() === "required") {
@@ -82,7 +83,7 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
                     }
 
                 } else {
-                    value = ts.factory.createStringLiteral(member.name.text);
+                    value = ts.factory.createStringLiteral(stripQuotes(member.name.text));
                 }
 
                 const input = {
@@ -105,15 +106,15 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
                         value = ts.factory.createArrayLiteralExpression(
                             [
                                 generateInputFlags("None"),
-                                ts.factory.createStringLiteral(argExpression.text),
-                                ts.factory.createStringLiteral(member.name.text),
+                                ts.factory.createStringLiteral(stripQuotes(argExpression.text)),
+                                ts.factory.createStringLiteral(stripQuotes(member.name.text)),
                             ],
                             true
                         )
 
                     }
                 }else {
-                    value = ts.factory.createStringLiteral(member.name.text);
+                    value = ts.factory.createStringLiteral(stripQuotes(member.name.text));
                 }
 
                 outputs.push({key: member.name.text, value});

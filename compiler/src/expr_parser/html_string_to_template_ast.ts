@@ -53,6 +53,5 @@ export function replaceCustomDirectivesAndPipes(html: string){
 
     // Replace pipes in interpolations
     html = replacePipesInInterpolations(html);
-
     return html;
 }
