@@ -1,4 +1,14 @@
-import {ComponentDef, DirectiveDef, LView, runtime, TNode, TNodeFlags, TView, ɵɵdefineComponent} from "./core";
+import {
+    ComponentDef,
+    DirectiveDef,
+    getDefinition,
+    LView,
+    runtime,
+    TNode,
+    TNodeFlags,
+    TView,
+    ɵɵdefineComponent
+} from "./core";
 import {
     allocExpando,
     findDirectiveDefMatches,
@@ -9,7 +19,7 @@ import {
 import {createLView} from "./bootstrap";
 
 export function ɵɵdefineDirective(def: any) {
-    return ɵɵdefineComponent(def);
+    return getDefinition(def);
 }
 
 export function resolveDirectives(tNode: TNode, tView: TView, lView: LView) {
@@ -74,6 +84,8 @@ function initializeDirectives(
 
     }
 
+    // initializeInputAndOutputAliases(tView, tNode, hostDirectiveDefs);
+
 }
 
 function markAsComponentHost(tView: TView, hostTNode: TNode, componentOffset: number): void {
@@ -94,15 +106,6 @@ export function createDirectivesInstances(tNode: TNode, tView: TView, lView: LVi
         invokeDirectivesHostBindings(tView, lView, tNode);
     }
 
-    // for (let i = 0; i < tNode.directiveToIndex.length; i++) {
-    //     const type = tNode.directiveToIndex[i];
-    //     const dirInstance = type.ɵfac()
-    //
-    //     if (tNode.flags & TNodeFlags.hasHostBindings) {
-    //         type.ɵdir.hostBindings(RenderFlags.CREATE, dirInstance)
-    //         // type.ɵdir.hostBindings(RenderFlags.UPDATE, dirInstance)
-    //     }
-    // }
 }
 
 function instantiateAllDirectives(tView: TView, lView: LView, tNode: TNode) {
@@ -134,5 +137,13 @@ function instantiateAllDirectives(tView: TView, lView: LView, tNode: TNode) {
 
 
     }
+
+}
+
+function initializeInputAndOutputAliases(
+    tView: TView,
+    tNode: TNode,
+    // hostDirectiveDefs: HostDirectiveDefs | null,
+): void {
 
 }
