@@ -1,8 +1,10 @@
-import {enterView, leaveView, runtime, TNode } from "./core";
+import {DirectiveDef, enterView, InputFlags, leaveView, runtime, TNode} from "./core";
 import { isDirectiveHost} from "./element";
 import {getLView, getSelectedIndex, getTView} from "./state";
 import {getNativeByTNode} from "../common";
 import {RenderFlags} from "./render_flags";
+import {ɵɵInputFlags} from "./input_flags";
+import {isComponentHost, markDirtyIfOnPush} from "./shared";
 
 // i0.ɵɵproperty("bind", ctx.name);
 export function ɵɵproperty<T>(
@@ -15,37 +17,78 @@ export function ɵɵproperty<T>(
 
     const inputs = tNode.inputs?.[propName];
     
-    if (tNode.directiveStart > -1) {
-
-        for (let i = 0; i < lView.directive_instances.length; i++) {
-            const directive_instance = lView.directive_instances[i];
-            const def = tView.directives[i];
-            const input = def.inputs[propName]
-            // if (input === propName)
-            //     directive_instance[propName] = value;
-        }
-        
-    }
+    // if (tNode.directiveStart > -1) {
+    //
+    //     const start = tNode.directiveStart;
+    //     const end = tNode.directiveEnd;
+    //
+    //     for (let i = start; i < end; i++) {
+    //         const directive_instance = lView.directive_instances[i];
+    //         const def = tView.directives[i];
+    //         const [privateName, flags, transform] = def.inputs[propName]
+    //
+    //         if (flags === InputFlags.HasDecoratorInputTransform) {
+    //             value = transform.call(directive_instance, value);
+    //         }
+    //
+    //         directive_instance[privateName] = value;
+    //     }
+    //
+    // }
 
     if (inputs) {
         for (const index of inputs) {
+
+            const instance = lView.directive_instances[index];
+            const def = tView.directives[index] as DirectiveDef<any>;
+            writeToDirectiveInput(def, instance, propName, value);
+
         }
     }
 
+    isComponentHost(tNode) && markDirtyIfOnPush(lView, tNode.index);
+
     lView.data[tNode.index][propName] = value;
 
-    if (isDirectiveHost(tNode)) {
-
-        const childLView = lView.instances[runtime.selectedIndex];
-        childLView.context[propName] = value as string;
-
-        enterView(childLView);
-        childLView.tView.template(RenderFlags.UPDATE, childLView.context);
-        leaveView()
-    }
+    // if (isDirectiveHost(tNode)) {
+    //
+    //     const childLView = lView.instances[runtime.selectedIndex];
+    //     childLView.context[propName] = value as string;
+    //
+    //     enterView(childLView);
+    //     childLView.tView.template(RenderFlags.UPDATE, childLView.context);
+    //     leaveView()
+    // }
 
     // propName = mapPropName(propName);
     // setDomProperty(tNode, lView, propName, value, renderer, sanitizer);
+
+}
+
+export function writeToDirectiveInput<T>(
+    def: DirectiveDef<T>,
+    instance: T,
+    publicName: string,
+    value: unknown,
+) {
+
+    const [privateName, flags, transform] = def.inputs[publicName];
+
+    if (transform !== null) {
+        value = transform.call(instance, value);
+    }
+
+    applyValueToInputField(instance, privateName, value);
+
+}
+
+export function applyValueToInputField<T>(
+    instance: T,
+    privateName: string,
+    value: unknown,
+) {
+
+    (instance as any)[privateName] = value;
 
 }
 

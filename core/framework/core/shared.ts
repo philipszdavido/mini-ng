@@ -19,6 +19,7 @@ import {
 import {AttributeMarker} from "./attribute_marker";
 import {RenderFlags} from "./render_flags";
 import {setCurrentTNode} from "./state";
+import {LViewFlags} from "./type";
 
 export function findDirectiveDefMatches(
     tView: TView,
@@ -266,4 +267,11 @@ export function mapPropName(name: string): string {
     if (name === 'readonly') return 'readOnly';
     if (name === 'tabindex') return 'tabIndex';
     return name;
+}
+
+export function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
+    const childComponentLView = lView.instances[viewIndex] //getComponentLViewByIndex(viewIndex, lView);
+    if (!(childComponentLView.flags & LViewFlags.CheckAlways)) {
+        childComponentLView.flags |= LViewFlags.Dirty;
+    }
 }
