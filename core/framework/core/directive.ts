@@ -82,7 +82,7 @@ function initializeDirectives(
 
     }
 
-    // initializeInputAndOutputAliases(tView, tNode, hostDirectiveDefs);
+    initializeInputAndOutputAliases(tView, tNode)//, hostDirectiveDefs);
 
 }
 
@@ -138,10 +138,43 @@ function instantiateAllDirectives(tView: TView, lView: LView, tNode: TNode) {
 
 }
 
+enum BindingType {
+    Inputs,
+    Outputs
+}
+
 function initializeInputAndOutputAliases(
     tView: TView,
     tNode: TNode,
     // hostDirectiveDefs: HostDirectiveDefs | null,
 ): void {
+    for (let index = tNode.directiveStart; index < tNode.directiveEnd; index++) {
+        const directiveDef = tView.directives[index] as DirectiveDef<any>;
+        setupSelectorMatchedInputsOrOutputs(BindingType.Inputs, tNode, directiveDef, index);
+        setupSelectorMatchedInputsOrOutputs(BindingType.Outputs, tNode, directiveDef, index);
+        // setupInitialInputs(tNode, index, false);
+    }
+}
 
+function setupSelectorMatchedInputsOrOutputs<T>(
+    mode: BindingType,
+    tNode: TNode,
+    def: DirectiveDef<T>,
+    directiveIndex: number,
+): void {
+    const aliasMap = mode === BindingType.Inputs ? def.inputs : def.outputs;
+
+    for (const publicName in aliasMap) {
+        if (aliasMap.hasOwnProperty(publicName)) {
+            let bindings;
+            if (mode === BindingType.Inputs) {
+                bindings = tNode.inputs ??= {};
+            } else {
+                bindings = tNode.outputs ??= {};
+            }
+            bindings[publicName] ??= [];
+            bindings[publicName].push(directiveIndex);
+            // setShadowStylingInputFlags(tNode, publicName);
+        }
+    }
 }
