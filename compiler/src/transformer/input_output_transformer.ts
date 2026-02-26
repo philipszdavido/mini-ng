@@ -44,6 +44,7 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
                         let transform
                         let hasDecoratorInputTransform
                         let required
+                        let declaredName
 
                         properties.forEach((property: ts.PropertyAssignment) => {
 
@@ -73,10 +74,13 @@ export function extractInputsOutputs(node: ts.ClassDeclaration) {
 
                         })
 
-                        const elements = [ generateInputFlags(hasDecoratorInputTransform ? "HasDecoratorInputTransform" : "None"), alias ];
+                        declaredName = ts.factory.createStringLiteral(stripQuotes(member.name.text));
+
+                        const elements = [ generateInputFlags(hasDecoratorInputTransform ? "HasDecoratorInputTransform" : "None"), alias, declaredName ];
                         if (transform) {
                             elements.push(transform);
                         }
+
 
                         value = ts.factory.createArrayLiteralExpression([...elements], false);
 
