@@ -1,12 +1,10 @@
 import {Command} from "./parse/parse";
-import {createNewProject} from "./commands/new";
+import {createNewProject} from "./commands/new/new";
 import {helpAction} from "./commands/help";
 
 export function commandAction(command: string, subCommands: string[]) {
 
     const c = stringToCommand(command);
-
-    console.log(c)
 
     switch (c) {
 
