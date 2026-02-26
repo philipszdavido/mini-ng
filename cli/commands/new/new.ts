@@ -45,10 +45,9 @@ function createPackageJson(projectPath: string, name: string) {
             build: "tsc",
             start: "node dist/main.js"
         },
-        dependencies: {},
-        devDependencies: {
-            "@mini-ng/core": "^5.0.0",
-        }
+        dependencies: {
+            "@mini-ng/core": "latest",
+        },
     };
 
     fs.writeFileSync(
@@ -108,9 +107,14 @@ function createAppComponent(projectPath: string) {
     }
 `;
 
-    let html = fs.readFileSync("../template/template-html.html", "utf8");
+    const packageRoot = path.resolve(__dirname, "");
 
-    let css = fs.readFileSync("../template/template-css.css", "utf8");
+    const templateHTMLDir = path.join(packageRoot, "template/template-html.html");
+    const templateCSSDir = path.join(packageRoot, "template/template-css.css");
+
+    let html = fs.readFileSync(templateHTMLDir, "utf8");
+
+    let css = fs.readFileSync(templateCSSDir, "utf8");
 
     fs.writeFileSync(
         path.join(projectPath, "src/app/app.component.ts"),
