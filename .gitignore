@@ -1,3 +1,6 @@
 figma-test/
 .idea
 node_modules
+packages/cli/dist
+packages/core/dist
+packages/compiler/dist
