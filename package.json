@@ -1,0 +1,12 @@
+{
+  "name": "mini-ng",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "compiler": "0.0.1",
+    "mini-ng-cli": "1.0.0"
+  }
+}
