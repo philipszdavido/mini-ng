@@ -4,3 +4,7 @@ node_modules
 packages/cli/dist
 packages/core/dist
 packages/compiler/dist
+mini-ng-test/
+ng-app/
+test/
+figma-test
