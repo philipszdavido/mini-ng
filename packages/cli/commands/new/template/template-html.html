@@ -231,13 +231,7 @@
         <div class="divider" role="separator" aria-label="Divider"></div>
         <div class="right-side">
             <div class="pill-group">
-                @for (item of [
-                { title: 'Explore the Docs', link: 'https://mining.dev' },
-                { title: 'Learn with Tutorials', link: 'https://mining.dev/tutorials' },
-                { title: 'CLI Docs', link: 'https://mining.dev/tools/cli' },
-                { title: 'mining Language Service', link: 'https://mining.dev/tools/language-service' },
-                { title: 'mining DevTools', link: 'https://mining.dev/tools/devtools' },
-                ]; track item.title) {
+                @for (item of items; track item.title) {
                 <a
                         class="pill"
                         [href]="item.link"

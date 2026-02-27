@@ -19,8 +19,8 @@ export function createNewProject(projectName: string) {
 
     createProjectStructure(projectPath, projectName);
 
-    console.log("📦 Installing dependencies...");
-    execSync("npm install", { cwd: projectPath, stdio: "inherit" });
+    // console.log("📦 Installing dependencies...");
+    // execSync("npm install", { cwd: projectPath, stdio: "inherit" });
 
     console.log("✅ Project created successfully!");
 
@@ -35,6 +35,7 @@ function createProjectStructure(projectPath: string, name: string) {
     createTsConfig(projectPath);
     createMainFile(projectPath);
     createAppComponent(projectPath);
+    createIndexHTML(projectPath);
 }
 
 function createPackageJson(projectPath: string, name: string) {
@@ -57,15 +58,40 @@ function createPackageJson(projectPath: string, name: string) {
 }
 
 function createTsConfig(projectPath: string) {
-    const tsconfig = {
-        compilerOptions: {
-            target: "ES2020",
-            module: "CommonJS",
-            outDir: "dist",
-            rootDir: "src",
-            strict: true
+    // const tsconfig = {
+    //     compilerOptions: {
+    //         target: "ES2020",
+    //         module: "CommonJS",
+    //         outDir: "dist",
+    //         rootDir: "src",
+    //         strict: true
+    //     }
+    // };
+
+    const tsconfig = /* To learn more about this file see: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+        {
+            "compileOnSave": false,
+            "compilerOptions": {
+                "outDir": "./dist/out-tsc",
+                "forceConsistentCasingInFileNames": true,
+                "strict": true,
+                "noImplicitOverride": true,
+                "noPropertyAccessFromIndexSignature": true,
+                "noImplicitReturns": true,
+                "noFallthroughCasesInSwitch": true,
+                "sourceMap": true,
+                "declaration": false,
+                "downlevelIteration": true,
+                "experimentalDecorators": true,
+                "moduleResolution": "node",
+                "importHelpers": true,
+                "target": "ES2022",
+                "module": "ES2022",
+                "useDefineForClassFields": false,
+                "lib": ["ES2022", "dom"]
+            }
         }
-    };
+
 
     fs.writeFileSync(
         path.join(projectPath, "tsconfig.json"),
@@ -101,6 +127,24 @@ function createAppComponent(projectPath: string) {
       styleUrl: './app.component.css'
     })
     export class AppComponent {
+        title = "mini-ng"
+      items = [
+        { title: "Explore the Docs", link: "https://angular.dev" },
+        {
+          title: "Learn with Tutorials",
+          link: "https://angular.dev/tutorials",
+        },
+        { title: "CLI Docs", link: "https://angular.dev/tools/cli" },
+        {
+          title: "Angular Language Service",
+          link: "https://angular.dev/tools/language-service",
+        },
+        {
+          title: "Angular DevTools",
+          link: "https://angular.dev/tools/devtools",
+        },
+      ];
+
       constructor() {
         console.log("AppComponent initialized");
       }
@@ -133,3 +177,26 @@ function createAppComponent(projectPath: string) {
 
 }
 
+function createIndexHTML(projectPath: string) {
+    let html = `
+    <!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Vite App</title>
+</head>
+<body>
+  <div id="app"></div>
+<!--  <script type="module" src="./main.ts"></script>-->
+</body>
+</html>
+    `
+
+    fs.writeFileSync(
+        path.join(projectPath, "index.html"),
+        html
+    );
+
+}
