@@ -77,9 +77,10 @@ import {VirtualFileSystem} from "./vfs";
 import * as http from "node:http";
 import {bundleProject} from "compiler/dist/bundle-vite";
 import fs from "fs";
+import {runServer} from "./webpack";
 // import { build } from "vite";
-// import type { Plugin } from "vite";
-// import { build } from "esbuild";
+
+var source = "";
 
 export async function serveAction() {
     const projectRoot = process.cwd();
@@ -89,29 +90,24 @@ export async function serveAction() {
     const tsFiles = glob.sync("src/**/*.ts");
 
     const program = createProgram(tsFiles);
-    // const vfs = new VirtualFileSystem("/")
+    const vfs = new VirtualFileSystem("/")
 
     // Add this before calling `bundleFromMemory`
-//     const virtualIndexHtmlPath = "/index.html";
-//     vfs.update(virtualIndexHtmlPath, `
-// <!DOCTYPE html>
-// <html lang="en">
-// <head>
-//   <meta charset="UTF-8" />
-//   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-//   <title>My MNGC App</title>
-// </head>
-// <body>
-//   <div id="app"></div>
-// <!--  <script type="module" src="/src/main.ts"></script>-->
-// </body>
-// </html>
-// `);
-
-//     const virtualIndexHtmlPath = "src/main.js";
-//     vfs.update(virtualIndexHtmlPath, `
-//   console.log("Hello from mngc 🚀");
-// `);
+    // const virtualIndexHtmlPath = "/index.html";
+    // vfs.update(virtualIndexHtmlPath, `
+    //     <!DOCTYPE html>
+    //     <html lang="en">
+    //     <head>
+    //       <meta charset="UTF-8" />
+    //       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    //       <title>My MNGC App</title>
+    //     </head>
+    //     <body>
+    //       <div id="app"></div>
+    //     <!--  <script type="module" src="/src/main.ts"></script>-->
+    //     </body>
+    //     </html>
+    // `);
 
     const currentDirectory = process.cwd();
     console.log("Current Directory:", currentDirectory);
@@ -122,39 +118,21 @@ export async function serveAction() {
         outDir: path.resolve(projectRoot, "dist"),
     };
 
-    program.emit(undefined, (fileName, data) => {
-        // fileName is what TS thinks the output path is
-        // We recompute to guarantee mirror structure
-
-        const rootDir = options.rootDir!;
-        const outDir = options.outDir!;
-
-        // Get relative path from rootDir
-        const relativePath = path.relative(rootDir, fileName);
-
-        // Ensure .js extension
-        const jsPath = relativePath.replace(/\.ts$/, ".js");
-
-        // Final output path
-        const outputPath = path.join(outDir, jsPath);
-
-        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        fs.writeFileSync(outputPath, data);
-
-        console.log("Emitted:", outputPath);
-    }, undefined, undefined, {
+    program.emit(undefined, writeVFSTransformedJSFiles(vfs), undefined, undefined, {
         before: [transformPlugin(program)],
     });
+
+    vfs.update("/src/main.js", source)
 
     console.log(`🚀 Starting mngc dev server...`);
     console.log(`📦 Watching TypeScript files...`);
 
     // createServer(vfs).then()
 
-    // bundleFromMemory(virtualIndexHtmlPath, vfs)
+    // buildViteVFS(vfs, projectRoot, "/src/main.js")
     //     .then()
 
-    bundleProject(process.cwd()).then()
+    runServer().then();
 
 }
 
@@ -340,4 +318,140 @@ export async function bundleFromMemory(entry: string, vfs: any) {
         code: chunk.code,
         map: chunk.map,
     };
+}
+
+function writeVFSTransformedJSFiles(vfs: VirtualFileSystem) {
+
+    return (fileName: string, data: string) => {
+        console.log("VFS Transformed", fileName);
+        //vfs.update(fileName, data)
+        source += "\n" + data
+    }
+
+}
+
+function writeTransformedJSFiles(options: any) {
+
+    return (fileName: string, data: string) => {
+        // fileName is what TS thinks the output path is
+        // We recompute to guarantee mirror structure
+
+        const rootDir = options.rootDir!;
+        const outDir = options.outDir!;
+
+        // Get relative path from rootDir
+        const relativePath = path.relative(rootDir, fileName);
+
+        // Ensure .js extension
+        const jsPath = relativePath.replace(/\.ts$/, ".js");
+
+        // Final output path
+        const outputPath = path.join(outDir, jsPath);
+
+        fs.mkdirSync(path.dirname(outputPath), {recursive: true});
+        fs.writeFileSync(outputPath, data);
+
+        console.log("Emitted:", outputPath);
+    }
+
+}
+
+async function buildViteVFS(vfs: VirtualFileSystem, projectRoot: string, entryPath: string) {
+
+    const { build, defineConfig } = await import("vite");
+
+    function viteVFSPlugin(vfs: VirtualFileSystem) {
+        return {
+            name: 'vite-plugin-vfs',
+            // 1. Check if the file exists in your VFS
+            resolveId(id: string) {
+                console.log(id)
+
+                // 1. If it's already absolute, calculate the relative path from root
+                let virtualId = id;
+                if (path.isAbsolute(id) && id.startsWith(projectRoot)) {
+                    virtualId = id.replace(projectRoot, "");
+                    // Ensure it starts with a leading slash for consistency
+                    if (!virtualId.startsWith("/")) virtualId = "/" + virtualId;
+                }
+
+                // 2. Check if the normalized ID exists in your VFS
+                if (vfs.has(virtualId)) {
+                    return virtualId;
+                }
+                return null;
+
+            },
+            // 2. Return the content from your Map
+            load(id: string) {
+
+                let virtualId = id;
+
+                console.log("id: ",id, virtualId)
+
+                if (path.isAbsolute(id) && id.startsWith(projectRoot)) {
+                    virtualId = id.replace(projectRoot, "");
+                    if (!virtualId.startsWith("/")) virtualId = "/" + virtualId;
+                }
+
+                if (vfs.has(virtualId)) {
+                    return vfs.read(virtualId);
+                }
+                return null;
+            }
+        };
+    }
+
+    const config = defineConfig({
+        publicDir: false,
+        appType: "custom",
+        logLevel: "info",
+        root: "/",
+        plugins: [
+            viteVFSPlugin(vfs)
+        ],
+        build: {
+
+            // Since you're working in memory, you might want to
+            // disable writing to the 'dist' folder on disk:
+            write: false,
+            lib: {
+                entry: entryPath, // e.g., '/src/main.ts'
+                formats: ['iife'], // 'iife' is best for a single self-executing bundle
+                name: 'MyBundle',
+                fileName: () => 'bundle.js'
+            },
+            rollupOptions: {
+                // Ensure external dependencies aren't stripped if you want them in the bundle
+                external: [],
+            }
+        }
+    });
+
+    const result = await build(config/*{
+        // Pass your custom VFS plugin here
+        plugins: [viteVFSPlugin(vfs)],
+        build: {
+            write: false, // Prevents writing to the 'dist' folder
+            lib: {
+                entry: '/absolute/path/to/your/entry.ts', // Entry point in VFS
+                formats: ['es'],
+                fileName: 'bundle'
+            }
+        }
+    }*/);
+
+    console.log(result);
+
+    // 'result' is an array of outputs (usually one for a simple build)
+    if (Array.isArray(result)) {
+        const bundle = result[0];
+        // The actual code is in 'code' for JS files
+        const outputCode = bundle.output[0].code;
+
+        console.log("Bundle generated successfully!");
+        return outputCode;
+    }
+
+    return null;
 }
