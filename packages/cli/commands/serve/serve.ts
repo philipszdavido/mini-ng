@@ -1,74 +1,3 @@
-// import chokidar from "chokidar";
-// import path from "path";
-// import fs from "fs";
-// import http from "http";
-//
-// import { VirtualFileSystem } from "../dev/vfs";
-// import { DependencyGraph } from "../dev/graph";
-// import { HMRServer } from "../dev/hmr";
-//
-// export function handleServe(args: string[]) {
-//     const root = process.cwd();
-//     const dist = path.join(root, "dist");
-//
-//     const vfs = new VirtualFileSystem(dist);
-//     vfs.loadAll();
-//
-//     const graph = new DependencyGraph(dist);
-//     graph.build();
-//
-//     const hmr = new HMRServer(24678);
-//
-//     const server = http.createServer((req, res) => {
-//         let filePath = path.join(
-//             dist,
-//             req.url === "/" ? "index.html" : req.url!
-//         );
-//
-//         if (!vfs.has(filePath)) {
-//             res.writeHead(404);
-//             res.end("Not Found");
-//             return;
-//         }
-//
-//         let content = vfs.read(filePath)!;
-//
-//         if (filePath.endsWith(".html")) {
-//             content += `
-//         <script>
-//           const ws = new WebSocket("ws://localhost:24678");
-//           ws.onmessage = (event) => {
-//             const data = JSON.parse(event.data);
-//             if (data.type === "update") {
-//               location.reload();
-//             }
-//           };
-//         </script>
-//       `;
-//         }
-//
-//         res.writeHead(200);
-//         res.end(content);
-//     });
-//
-//     server.listen(4200, () =>
-//         console.log("🚀 Dev server running on http://localhost:4200")
-//     );
-//
-//     chokidar.watch(dist).on("change", (file) => {
-//         console.log("♻ File changed:", file);
-//
-//         const content = fs.readFileSync(file, "utf8");
-//         vfs.update(file, content);
-//
-//         const affected = graph.getDependents(file);
-//
-//         console.log("🔎 Affected modules:", affected);
-//
-//         hmr.sendUpdate(file);
-//     });
-// }
-
 import * as path from "path";
 import * as glob from "glob";
 import { createProgram } from "compiler"
@@ -80,8 +9,6 @@ import fs from "fs";
 import {runServer} from "./webpack";
 // import { build } from "vite";
 
-var source = "";
-
 export async function serveAction() {
     const projectRoot = process.cwd();
     const distDir = path.join(projectRoot, "dist");
@@ -92,23 +19,6 @@ export async function serveAction() {
     const program = createProgram(tsFiles);
     const vfs = new VirtualFileSystem("/")
 
-    // Add this before calling `bundleFromMemory`
-    // const virtualIndexHtmlPath = "/index.html";
-    // vfs.update(virtualIndexHtmlPath, `
-    //     <!DOCTYPE html>
-    //     <html lang="en">
-    //     <head>
-    //       <meta charset="UTF-8" />
-    //       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    //       <title>My MNGC App</title>
-    //     </head>
-    //     <body>
-    //       <div id="app"></div>
-    //     <!--  <script type="module" src="/src/main.ts"></script>-->
-    //     </body>
-    //     </html>
-    // `);
-
     const currentDirectory = process.cwd();
     console.log("Current Directory:", currentDirectory);
     console.log(tsFiles)
@@ -118,19 +28,12 @@ export async function serveAction() {
         outDir: path.resolve(projectRoot, "dist"),
     };
 
-    program.emit(undefined, writeVFSTransformedJSFiles(vfs), undefined, undefined, {
-        before: [transformPlugin(program)],
-    });
-
-    vfs.update("/src/main.js", source)
+    // program.emit(undefined, writeVFSTransformedJSFiles(vfs), undefined, undefined, {
+    //     before: [transformPlugin(program)],
+    // });
 
     console.log(`🚀 Starting mngc dev server...`);
     console.log(`📦 Watching TypeScript files...`);
-
-    // createServer(vfs).then()
-
-    // buildViteVFS(vfs, projectRoot, "/src/main.js")
-    //     .then()
 
     runServer().then();
 
@@ -323,9 +226,7 @@ export async function bundleFromMemory(entry: string, vfs: any) {
 function writeVFSTransformedJSFiles(vfs: VirtualFileSystem) {
 
     return (fileName: string, data: string) => {
-        console.log("VFS Transformed", fileName);
-        //vfs.update(fileName, data)
-        source += "\n" + data
+        vfs.update(fileName, data)
     }
 
 }
