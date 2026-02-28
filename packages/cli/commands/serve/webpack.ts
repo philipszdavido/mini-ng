@@ -44,7 +44,7 @@ export const runServer = async () => {
         plugins: [
             new HtmlWebpackPlugin({
                 template: path.resolve(process.cwd(), "index.html"),
-                inject: "body" // inject script before </body>
+                inject: "body"
             })
         ]
     };
