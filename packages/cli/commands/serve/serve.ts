@@ -1,36 +1,12 @@
 import * as path from "path";
 import * as glob from "glob";
 import { createProgram } from "compiler"
-import {transformPlugin} from "compiler/dist/visitor/visitor";
 import {VirtualFileSystem} from "./vfs";
 import * as http from "node:http";
-import {bundleProject} from "compiler/dist/bundle-vite";
 import fs from "fs";
 import {runServer} from "./webpack";
-// import { build } from "vite";
 
 export async function serveAction() {
-    const projectRoot = process.cwd();
-    const distDir = path.join(projectRoot, "dist");
-    const projectPath = path.resolve(process.cwd(), projectRoot);
-
-    const tsFiles = glob.sync("src/**/*.ts");
-
-    const program = createProgram(tsFiles);
-    const vfs = new VirtualFileSystem("/")
-
-    const currentDirectory = process.cwd();
-    console.log("Current Directory:", currentDirectory);
-    console.log(tsFiles)
-
-    const options = {
-        rootDir: path.resolve(projectRoot, "src"),
-        outDir: path.resolve(projectRoot, "dist"),
-    };
-
-    // program.emit(undefined, writeVFSTransformedJSFiles(vfs), undefined, undefined, {
-    //     before: [transformPlugin(program)],
-    // });
 
     console.log(`🚀 Starting mngc dev server...`);
     console.log(`📦 Watching TypeScript files...`);
@@ -52,68 +28,69 @@ async function createServer(vfs: VirtualFileSystem) {
     });
 }
 
-// export async function bundleProject(projectDir: string) {
-//     console.log("Bundling project in:", projectDir);
-//
-//     const distDir = path.join(projectDir, "dist");
-//
-//     try {
-//         const { build } = await import("vite");
-//
-//         const result = await build({
-//             root: projectDir,
-//             logLevel: "info",
-//
-//             build: {
-//                 write: false, // 🚀 DO NOT EMIT FILES
-//                 emptyOutDir: false,
-//
-//                 rollupOptions: {
-//                     input: path.join(distDir, "main.js"),
-//                     output: {
-//                         format: "es",
-//                         entryFileNames: "bundle.mjs",
-//                         inlineDynamicImports: true,
-//                         sourcemap: true,
-//                     },
-//                 },
-//
-//                 target: "es2018",
-//                 minify: "terser",
-//                 sourcemap: true,
-//             },
-//
-//             resolve: {
-//                 extensions: [".js", ".ts", ".mjs"],
-//                 conditions: ["browser", "module", "import"],
-//             },
-//         });
-//
-//         // 🔥 Vite returns RollupOutput when write: false
-//         const output = Array.isArray(result)
-//             ? result[0].output
-//             : result.output;
-//
-//         const bundleFile = output.find(
-//             (file: any) => file.type === "chunk"
-//         );
-//
-//         if (!bundleFile) {
-//             throw new Error("No bundle chunk found");
-//         }
-//
-//         console.log("✅ Bundle created in memory");
-//
-//         return {
-//             code: bundleFile.code,
-//             map: bundleFile.map,
-//         };
-//
-//     } catch (err) {
-//         console.error("❌ Bundle failed:", err);
-//         throw err;
-//     }
-// }
+export async function bundleProject(projectDir: string) {
+    console.log("Bundling project in:", projectDir);
+
+    const distDir = path.join(projectDir, "dist");
+
+    try {
+        const { build } = await import("vite");
+
+        const result = await build({
+            root: projectDir,
+            logLevel: "info",
+
+            build: {
+                write: false, // 🚀 DO NOT EMIT FILES
+                emptyOutDir: false,
+
+                rollupOptions: {
+                    input: path.join(distDir, "main.js"),
+                    output: {
+                        format: "es",
+                        entryFileNames: "bundle.mjs",
+                        inlineDynamicImports: true,
+                        sourcemap: true,
+                    },
+                },
+
+                target: "es2018",
+                minify: "terser",
+                sourcemap: true,
+            },
+
+            resolve: {
+                extensions: [".js", ".ts", ".mjs"],
+                conditions: ["browser", "module", "import"],
+            },
+        });
+
+        // 🔥 Vite returns RollupOutput when write: false
+        const output = Array.isArray(result)
+            ? result[0].output
+            // @ts-ignore
+            : result.output;
+
+        const bundleFile = output.find(
+            (file: any) => file.type === "chunk"
+        );
+
+        if (!bundleFile) {
+            throw new Error("No bundle chunk found");
+        }
+
+        console.log("✅ Bundle created in memory");
+
+        return {
+            code: bundleFile.code,
+            map: bundleFile.map,
+        };
+
+    } catch (err) {
+        console.error("❌ Bundle failed:", err);
+        throw err;
+    }
+}
 
 export function vfsPlugin(vfs: any) {
 
@@ -355,4 +332,26 @@ async function buildViteVFS(vfs: VirtualFileSystem, projectRoot: string, entryPa
     }
 
     return null;
+}
+
+function runManual() {
+    const projectRoot = process.cwd();
+    const distDir = path.join(projectRoot, "dist");
+    const projectPath = path.resolve(process.cwd(), projectRoot);
+
+    const tsFiles = glob.sync("src/**/*.ts");
+
+    const program = createProgram(tsFiles);
+    const vfs = new VirtualFileSystem("/")
+    const currentDirectory = process.cwd();
+
+    const options = {
+        rootDir: path.resolve(projectRoot, "src"),
+        outDir: path.resolve(projectRoot, "dist"),
+    };
+
+    // program.emit(undefined, writeVFSTransformedJSFiles(vfs), undefined, undefined, {
+    //     before: [transformPlugin(program)],
+    // });
+
 }
