@@ -15,11 +15,7 @@ import {getCurrentParentTNode, setCurrentTNode} from "./state";
 import { isComponentDef} from "./shared";
 import {createDirectivesInstances, resolveDirectives} from "./directive";
 import {renderView} from "./change_detection";
-
-const COMPONENT_VARIABLE = '%COMP%';
-const HOST_ATTR = `_nghost-${COMPONENT_VARIABLE}`;
-const CONTENT_ATTR = `_ngcontent-${COMPONENT_VARIABLE}`;
-const SVG_NS = "http://www.w3.org/2000/svg";
+import {COMPONENT_VARIABLE, SVG_NS} from "./constants";
 
 export function ɵɵelementStart(index: number, tag: string, attrsIndex?: number | null,) {
     const lView = runtime.currentLView!;
@@ -184,7 +180,8 @@ function renderComponent(def: DirectiveDef<any>, parentTView: TView, el: any, pa
     if (templateFn !== null) {
 
         if (componentDef.styles) {
-            shimCss(componentDef.id, componentDef.styles.join("\n"));
+            const styles = shimCss(componentDef.id, componentDef.styles.join("\n"));
+            injectStyle(componentDef.id, styles)
         }
 
         // First update pass
@@ -199,11 +196,24 @@ function shimCss(componentIdentifier: string, styleText: string) {
 
     styleText = styleText.replaceAll(COMPONENT_VARIABLE, componentIdentifier)
 
-    const style = document.createElement("style");
-    style.textContent = styleText;
-    document.head.appendChild(style);
+    // const style = document.createElement("style");
+    // style.textContent = styleText;
+    // document.head.appendChild(style);
+    return styleText;
 }
 
 export function isDirectiveHost(tNode: TNode): boolean {
     return (tNode.flags & TNodeFlags.isDirectiveHost) === TNodeFlags.isDirectiveHost;
+}
+
+export function injectStyle(componentId: string, css: string) {
+    const styleId = `mini-ng-style-${componentId}`;
+
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = css;
+
+    document.head.appendChild(style);
 }
