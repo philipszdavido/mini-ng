@@ -11,7 +11,7 @@ import {
     SelectorFlags,
     TAttributes,
     TConstantsOrFactory,
-    TNode,
+    TNode, TNodeType,
     TView,
     TViewType,
     Type
@@ -19,7 +19,7 @@ import {
 import {AttributeMarker} from "./attribute_marker";
 import {RenderFlags} from "./render_flags";
 import {setCurrentTNode} from "./state";
-import {LViewFlags} from "./type";
+import {getUniqueLViewId, LViewFlags} from "./type";
 
 export function findDirectiveDefMatches(
     tView: TView,
@@ -273,5 +273,62 @@ export function markDirtyIfOnPush(lView: LView, viewIndex: number): void {
     const childComponentLView = lView.instances[viewIndex] //getComponentLViewByIndex(viewIndex, lView);
     if (!(childComponentLView.flags & LViewFlags.CheckAlways)) {
         childComponentLView.flags |= LViewFlags.Dirty;
+    }
+}
+
+export function createLView<T>(
+    parentLView: LView | null,
+    tView: TView,
+    context: T | null,
+    flags: LViewFlags,
+    host: any | null,
+    tHostNode: TNode | null,
+): LView {
+
+    const lView: LView = {
+        context,
+        context_value: undefined,
+        data: [],
+        host,
+        instances: [],
+        parent: parentLView,
+        queries: undefined,
+        tView,
+        flags: flags |
+            LViewFlags.CreationMode |
+            LViewFlags.Attached |
+            LViewFlags.FirstLViewPass |
+            LViewFlags.Dirty |
+            LViewFlags.RefreshView,
+        id: getUniqueLViewId(),
+    }
+
+    return lView as LView;
+}
+
+export function createTNode(
+    index: number,
+    tag: string,
+    type: TNodeType,
+    tView: TView,
+    parentNode: TNode,
+    attrs: any[] | null,
+): TNode {
+    let flags = 0;
+
+    return {
+        type,
+        index: index,
+        value: tag,
+        tView: tView,
+        parent: parentNode,
+        flags,
+        attrs,
+        localNames: null,
+        inputs: null,
+        outputs: null,
+        componentOffset: -1,
+        directiveStart: -1,
+        directiveEnd: -1,
     }
 }

@@ -1,18 +1,36 @@
 import {
-  LView,
-  enterView,
-  leaveView,
-  TView,
   ComponentDef,
-  CssSelector,
-  Type, TViewType, TNode, runtime
+  CssSelector, DirectiveDef,
+  enterView,
+  getComponentDef,
+  leaveView,
+  LView,
+  runtime,
+  TNode,
+  TNodeType,
+  TView,
+  TViewType,
+  Type
 } from "./core";
-import { DefaultDomRenderer2 } from "./browser";
-import { setupZone } from "./zone";
+import {DefaultDomRenderer2} from "./browser";
+import {setupZone} from "./zone";
 import {getUniqueLViewId, LViewFlags} from "./type";
 import {detectChanges} from "./change_detection";
 import {createTView} from "./shared";
 import {RenderFlags} from "./render_flags";
+import {createDirectivesInstances, directiveHostFirstCreatePass} from "./directive";
+
+class Application {
+  bootstrap(component: any, rootSelectorOrNode?: string) {
+
+    const factory = resolveComponentFactory(component);
+    const selectorOrNode = rootSelectorOrNode || factory.selector;
+    factory.create(selectorOrNode)
+
+    return this;
+
+  }
+}
 
 function locateHostElement(
   renderer,
@@ -36,67 +54,10 @@ export function createElementNode(
   return renderer.createElement(name, namespace);
 }
 
-export async function bootstrapApplication(component: any) {
-  const componentDef = component.ɵcmp as ComponentDef<any>;
-  const componentInstance = component.ɵfac();
+export async function bootstrapApplication(component: any): Promise<Application> {
 
-  const elementName = componentDef.selectors[0][0] as string || "div";
-
-  const rootSelectorOrNode = componentDef.selectors[0][0];
-
-  const hostRenderer = new DefaultDomRenderer2(window.document);
-
-  const hostElement = rootSelectorOrNode
-    ? locateHostElement(
-        hostRenderer,
-        rootSelectorOrNode,
-        null,
-        null,
-      )
-    : createElementNode(hostRenderer, elementName, "") as HTMLElement;
-
-  // we need to root TView
-  const rootTView = createRootTView(rootSelectorOrNode, componentDef, undefined);
-  rootTView.template = componentDef.template
-  rootTView.consts = componentDef.consts;
-  rootTView.id = componentDef.id;
-
-  const id_value = "_nghost-" + rootTView.id;
-  hostElement.setAttribute(id_value, id_value);
-
-  hostElement.setAttribute("mini-ng-version", "0.0.0");
-
-  const templateFn = rootTView.template
-
-  const lView: LView = {
-    flags: undefined,
-    id: 0,
-    tView: rootTView,
-    data: [],
-    instances: [],
-    parent: null,
-    host: hostElement,
-    context: componentInstance,
-    context_value: null,
-    queries: null
-  };
-
-  setupZone(() => {
-    tick();
-  });
-
-  enterView(lView);
-
-  templateFn(RenderFlags.CREATE, componentInstance);
-
-  rootTView.firstCreatePass = false;
-
-  // First update pass
-  templateFn(RenderFlags.UPDATE, componentInstance);
-
-  leaveView();
-
-  enterView(lView);
+  const appRef = new Application();
+  return appRef.bootstrap(component)
 
 }
 
@@ -114,7 +75,7 @@ function createRootTView(
       :  extractAttrsAndClassesFromSelector(componentDef.selectors[0]);
   let varsToAllocate = 0;
 
-  // const directivesToApply: DirectiveDef<unknown>[] = [componentDef];
+  const directivesToApply: DirectiveDef<unknown>[] = [componentDef];
 
   const rootTView = createTView(
       TViewType.Root,
@@ -122,7 +83,7 @@ function createRootTView(
       null,
       1,
       varsToAllocate,
-      componentDef.directiveDefs,
+      directivesToApply,//componentDef.directiveDefs,
       [tAttributes],
       null
   );
@@ -130,37 +91,103 @@ function createRootTView(
   return rootTView;
 }
 
-export function createLView<T>(
-    parentLView: LView | null,
-    tView: TView,
-    context: T | null,
-    flags: LViewFlags,
-    host: any | null,
-    tHostNode: TNode | null,
-): LView {
-
-  const lView: LView = {
-    context,
-    context_value: undefined,
-    data: [],
-    host,
-    instances: [],
-    parent: parentLView,
-    queries: undefined,
-    tView,
-    flags: flags |
-        LViewFlags.CreationMode |
-        LViewFlags.Attached |
-        LViewFlags.FirstLViewPass |
-        LViewFlags.Dirty |
-        LViewFlags.RefreshView,
-    id: getUniqueLViewId(),
-  }
-
-  return lView as LView;
-}
-
 function tick() {
   let rootLView = runtime.currentLView as LView;
   detectChanges(rootLView);
+}
+
+function resolveComponentFactory<T>(component: Type<T>): ComponentFactory<T> {
+  const componentDef = getComponentDef(component)!;
+  return new ComponentFactory(componentDef);
+}
+
+export class ComponentFactory<T> {
+  selector: string;
+  componentType: Type<any>;
+
+  constructor(
+      private componentDef: ComponentDef<any>
+  ) {
+    this.componentType = componentDef.type;
+    this.selector = (componentDef.selectors).map(selector => {
+      return selector.join()
+    }).join();
+  }
+
+  create(
+      rootSelectorOrNode?: any,
+  ) {
+
+    const cmpDef = this.componentDef;
+    const elementName = cmpDef.selectors[0][0] as string || "div";
+
+    const hostRenderer = new DefaultDomRenderer2(window.document);
+    const hostElement = rootSelectorOrNode
+        ? locateHostElement(
+            hostRenderer,
+            rootSelectorOrNode,
+            null,
+            null,
+        )
+        : createElementNode(hostRenderer, elementName, "") as HTMLElement;
+
+    // we need to root TView
+    const rootTView = createRootTView(rootSelectorOrNode, cmpDef, undefined);
+    rootTView.template = cmpDef.template
+    rootTView.consts = cmpDef.consts;
+    rootTView.id = cmpDef.id;
+
+    const id_value = "_nghost-" + rootTView.id;
+    hostElement.setAttribute(id_value, id_value);
+
+    hostElement.setAttribute("mini-ng-version", "0.0.0");
+
+    const templateFn = rootTView.template
+
+    const rootLView: LView = {
+      flags: undefined,
+      id: 0,
+      tView: rootTView,
+      data: [],
+      instances: [],
+      parent: null,
+      host: hostElement,
+      context: null,
+      context_value: null,
+      queries: null
+    };
+
+    const hostTNode = directiveHostFirstCreatePass(
+        0,
+        rootLView,
+        TNodeType.Element,
+        '#host',
+        () => rootTView.directiveRegistry,
+        true,
+        0,
+    );
+
+    createDirectivesInstances(hostTNode, rootTView, rootLView);
+    const componentInstance = rootLView.directive_instances[hostTNode.index]
+    rootLView.context = componentInstance;
+
+    setupZone(() => {
+      tick();
+    });
+
+    enterView(rootLView);
+
+    templateFn(RenderFlags.CREATE, componentInstance);
+
+    rootTView.firstCreatePass = false;
+
+    // First update pass
+    templateFn(RenderFlags.UPDATE, componentInstance);
+
+    leaveView();
+
+    enterView(rootLView);
+
+  }
+
 }

@@ -2,27 +2,80 @@ import {
     ComponentDef,
     DirectiveDef,
     getDefinition,
-    LView,
+    LView, TAttributes,
     TNode,
-    TNodeFlags,
+    TNodeFlags, TNodeType,
     TView,
 } from "./core";
 import {
-    allocExpando,
+    allocExpando, createLView, createTNode,
     findDirectiveDefMatches,
     getOrCreateComponentTView,
     invokeDirectivesHostBindings,
     isComponentDef, isComponentHost
 } from "./shared";
-import {createLView} from "./bootstrap";
+import {getCurrentTNode, setCurrentTNode} from "./state";
+
+type DirectiveMatcherStrategy = (tView: TView, tNode: TNode) => DirectiveDef<unknown>[] | null
 
 export function ɵɵdefineDirective(def: any) {
     return getDefinition(def);
 }
 
-export function resolveDirectives(tNode: TNode, tView: TView, lView: LView) {
+function getConstant<T>(tViewConsts: any[][], attrsIndex: number) {
+    return tViewConsts ? tViewConsts[attrsIndex] : null;
+}
 
-    const matchedDirectiveDefs = findDirectiveDefMatches(tView, tNode)
+function createTNodeAtIndex(tView: TView, index: number, type: TNodeType.Element, name: string, attrs: any[]) {
+
+    const currentTNode = getCurrentTNode()
+    const isParent = currentTNode?.parent
+    const parent = isParent ? currentTNode : currentTNode && currentTNode.parent;
+
+    const tNode = createTNode(index, name, type, tView, parent, attrs)
+
+    tView.data[index] = tNode;
+
+    return tNode;
+}
+
+function getOrCreateTNode(tView: TView, index: number, type: TNodeType.Element, name: string, attrs: any[]) {
+    let tNode = tView.data[index] as TNode;
+    if (tNode === null || tNode === undefined) {
+        tNode = createTNodeAtIndex(tView, index, type, name, attrs);
+    }
+    setCurrentTNode(tNode, true);
+    return tNode;
+}
+
+export function directiveHostFirstCreatePass(
+    index: number,
+    lView: LView,
+    type: TNodeType.Element,
+    name: string,
+    directiveMatcher: DirectiveMatcherStrategy,
+    bindingsEnabled: boolean,
+    attrsIndex?: number | null,
+    localRefsIndex?: number,
+) {
+
+    // get or create tNode
+
+    const tView = lView.tView;
+    const tViewConsts = tView.consts;
+    const attrs = getConstant<TAttributes>(tViewConsts, attrsIndex);
+    const tNode = getOrCreateTNode(tView, index, type, name, attrs) as TNode
+
+    // resolve directives
+    resolveDirectives(tNode, tView, lView, directiveMatcher)
+
+    return tNode;
+
+}
+
+export function resolveDirectives(tNode: TNode, tView: TView, lView: LView, matcher) {
+
+    const matchedDirectiveDefs = matcher ? matcher(tView, tNode) : findDirectiveDefMatches(tView, tNode)
 
     if (matchedDirectiveDefs !== null) {
 

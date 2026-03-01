@@ -1,8 +1,9 @@
 import {enterView, leaveView, LView, runtime, TNode, TNodeType, TView, TViewType} from "./core";
-import {appendChild, createTNode} from "./element";
+import {appendChild} from "./element";
 import {createLView, getLView, getSelectedIndex, getTView, setCurrentTNode} from "./state";
 import {RenderFlags} from "./render_flags";
 import {cloneObject} from "./utils";
+import {createTNode} from "./shared";
 
 export function ɵɵtemplate<T>(
     index: number,

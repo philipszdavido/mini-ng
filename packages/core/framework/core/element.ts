@@ -12,7 +12,7 @@ import {
     TViewType,
 } from "./core";
 import {getCurrentParentTNode, setCurrentTNode} from "./state";
-import { isComponentDef} from "./shared";
+import {createTNode, isComponentDef} from "./shared";
 import {createDirectivesInstances, resolveDirectives} from "./directive";
 import {renderView} from "./change_detection";
 import {COMPONENT_VARIABLE, SVG_NS} from "./constants";
@@ -81,7 +81,7 @@ export function ɵɵelementStart(index: number, tag: string, attrsIndex?: number
 
     }
 
-    let matchedDirectiveDefs = resolveDirectives(tNode, tView, lView)
+    let matchedDirectiveDefs = resolveDirectives(tNode, tView, lView, null)
 
     appendChild(el, lView, tView, runtime.currentTNode.parent)
 
@@ -112,33 +112,6 @@ export function appendChild(native: Element | any, lView: LView, tView: TView, t
 
     return lView.data[tNode.index].appendChild(native);
 
-}
-
-export function createTNode(
-    index: number,
-    tag: string,
-    type: TNodeType,
-    tView: TView,
-    parentNode: TNode,
-    attrs: any[] | null,
-): TNode {
-    let flags = 0;
-
-    return {
-        type,
-        index: index,
-        value: tag,
-        tView: tView,
-        parent: parentNode,
-        flags,
-        attrs,
-        localNames: null,
-        inputs: null,
-        outputs: null,
-        componentOffset: -1,
-        directiveStart: -1,
-        directiveEnd: -1,
-    }
 }
 
 export function ɵɵelementEnd() {
