@@ -17,7 +17,8 @@ import {
   ɵɵrepeater,
   ɵɵrepeaterCreate,
   ɵɵtext,
-  ɵɵtextInterpolate
+  ɵɵtextInterpolate,
+  ɵɵtextStyle
 } from "../constants/constants";
 import {CSSParser} from "../css_parser/css_parser";
 import {ElementType} from "domelementtype";
@@ -228,6 +229,7 @@ export class ViewGenerator {
     this.consts = []
     viewGenerator.processChildNodes(element);
     this.consts = [...viewGenerator.consts]
+    this.slot = viewGenerator.slot
 
     this.stmts.push(...viewGenerator.stmts);
     this.updateStmts.push(...viewGenerator.updateStmts);
@@ -243,10 +245,12 @@ export class ViewGenerator {
     index: number
   ): { creation: string; update: string } {
 
-    const parentElement = textNode.prev as Element;
+    const parentElement = textNode.parent as Element;
+    let isTextStyle = false;
 
     if (parentElement instanceof Element) {
       if (parentElement.type === ElementType.Style) {
+        isTextStyle = true;
         const cssParser = new CSSParser();
         (textNode as Text).data = cssParser.parsePostCSS((textNode as Text).data.trim())
       }
@@ -264,13 +268,17 @@ export class ViewGenerator {
         this.updateStmts.push(generateTextInterpolateNode(this.parseInterpolations(text), this.implicitVariables))
 
         return {
-          creation: `i0.ɵɵtext(${index});\n`,
-          update: `i0.ɵɵadvance(${index});\ni0.ɵɵtextInterpolate(ctx.${bindingExpression});\n`,
+          creation: ``,
+          update: ``,
         };
       } else {
-        this.stmts.push(generateTextNode(index, text));
+        if (isTextStyle) {
+          this.stmts.push(generateTextStyleNode(index, text));
+        } else {
+          this.stmts.push(generateTextNode(index, text));
+        }
         return {
-          creation: `i0.ɵɵtext(${index}, "${text}");\n`,
+          creation: ``,
           update: "",
         };
       }
@@ -775,6 +783,28 @@ function generateTextNode(index: number, text?: string) {
       undefined,
       params
     )
+  );
+}
+
+function generateTextStyleNode(index: number, text?: string) {
+
+  const params: ts.Expression[] = [
+    ts.factory.createNumericLiteral(index),
+  ];
+
+  if (text) {
+    params.push(ts.factory.createStringLiteral(text));
+  }
+
+  return ts.factory.createExpressionStatement(
+      ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(
+              ts.factory.createIdentifier(i0),
+              ts.factory.createIdentifier(ɵɵtextStyle)
+          ),
+          undefined,
+          params
+      )
   );
 }
 

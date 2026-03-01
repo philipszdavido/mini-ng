@@ -1,6 +1,7 @@
 import {runtime} from "./core";
 import {appendChild} from "./element";
 import {getCurrentParentTNode} from "./state";
+import {COMPONENT_VARIABLE} from "./constants";
 
 export function ɵɵtext(index: number, value = '') {
     const lView = runtime.currentLView!;
@@ -26,4 +27,26 @@ export function ɵɵtextInterpolate(...args: string[]/*prefix: string, value: an
     if (node.textContent !== newValue) {
         node.textContent = newValue;
     }
+}
+
+export function ɵɵtextStyle(index: number, value = '') {
+
+    const lView = runtime.currentLView!;
+    const tView = lView.tView;
+
+    let text = lView.data[index];
+
+    const componentIdentifier = tView.id;
+
+    value = value.replaceAll(COMPONENT_VARIABLE, componentIdentifier)
+
+    if (tView.firstCreatePass) {
+        text = document.createTextNode(value);
+        lView.data[index] = text;
+    }
+
+    const parent = getCurrentParentTNode()
+
+    appendChild(text, lView, tView, parent);
+
 }
