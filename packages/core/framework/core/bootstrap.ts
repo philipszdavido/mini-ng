@@ -37,10 +37,10 @@ export function createElementNode(
 }
 
 export function bootstrapApplication(component: any) {
-  const componentDef = component.ɵcmp;
+  const componentDef = component.ɵcmp as ComponentDef<any>;
   const componentInstance = component.ɵfac();
 
-  const elementName = componentDef.selectors[0][0] || "div";
+  const elementName = componentDef.selectors[0][0] as string || "div";
 
   const rootSelectorOrNode = componentDef.selectors[0][0];
 
@@ -58,6 +58,11 @@ export function bootstrapApplication(component: any) {
   // we need to root TView
   const rootTView = createRootTView(rootSelectorOrNode, componentDef, undefined);
   rootTView.template = componentDef.template
+  rootTView.consts = componentDef.consts;
+  rootTView.id = componentDef.id;
+
+  const id_value = "_nghost-" + rootTView.id;
+  (hostElement as HTMLElement).setAttribute(id_value, id_value);
 
   const templateFn = rootTView.template
 
